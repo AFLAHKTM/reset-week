@@ -6,6 +6,7 @@ import { QuickAddModal } from './components/QuickAddModal';
 import { ArchivedWeekModal } from './components/ArchivedWeekModal';
 import { HomeView } from './views/HomeView';
 import { WeekView } from './views/WeekView';
+import { ScheduleView } from './views/ScheduleView';
 import { LearnView } from './views/LearnView';
 import { FinanceView } from './views/FinanceView';
 import { ReviewView } from './views/ReviewView';
@@ -22,6 +23,7 @@ const AppContent: React.FC = () => {
       <main className="flex-1 max-w-md md:max-w-3xl w-full mx-auto px-3.5 sm:px-6 pt-3.5 pb-28">
         {activeTab === 'home' && <HomeView />}
         {activeTab === 'week' && <WeekView />}
+        {activeTab === 'schedule' && <ScheduleView />}
         {activeTab === 'learn' && <LearnView />}
         {activeTab === 'finance' && <FinanceView />}
         {activeTab === 'review' && <ReviewView />}

@@ -4,6 +4,7 @@ import type { TabType } from '../types';
 import {
   Compass,
   CheckSquare,
+  CalendarClock,
   BookOpen,
   CircleDollarSign,
   Award,
@@ -16,6 +17,7 @@ export const Navigation: React.FC = () => {
   const navItems: { id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'home', label: 'Home', icon: Compass },
     { id: 'week', label: 'Week', icon: CheckSquare },
+    { id: 'schedule', label: 'Schedule', icon: CalendarClock },
     { id: 'learn', label: 'Learn', icon: BookOpen },
     { id: 'finance', label: 'Finance', icon: CircleDollarSign },
     { id: 'review', label: 'Review', icon: Award },

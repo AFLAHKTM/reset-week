@@ -12,6 +12,7 @@ import type {
   WeeklyReviewAnswers,
   WeekScore,
   WeeklyOutcomes,
+  ScheduleItem,
 } from '../types';
 import { formatISODate, formatTime12h } from '../utils/dateUtils';
 import { getInitialSeedData, createNewResetWeek, createInitialOutcomes } from '../utils/seedData';
@@ -80,6 +81,13 @@ interface ResetWeekContextType {
     streak: number;
     completedDays: number;
   };
+  todaySchedules: ScheduleItem[];
+  weeklySchedules: ScheduleItem[];
+  schedulesSummary: {
+    total: number;
+    completed: number;
+    upcoming: number;
+  };
   calculatedWeekScore: WeekScore;
 
   // Actions
@@ -102,6 +110,9 @@ interface ResetWeekContextType {
   updateEnglish: (data: Partial<EnglishArticle>) => void;
   addTransaction: (tx: Omit<TransactionEntry, 'id'>) => void;
   deleteTransaction: (id: string) => void;
+  addScheduleItem: (item: Omit<ScheduleItem, 'id' | 'completed'>) => void;
+  toggleScheduleItem: (itemId: string, date?: string) => void;
+  deleteScheduleItem: (itemId: string, date?: string) => void;
   updateReviewAnswers: (data: Partial<WeeklyReviewAnswers>) => void;
   startNewResetWeek: () => void;
   exportJSON: () => void;
@@ -507,6 +518,34 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       completedDays,
     };
   }, [currentWeek.days]);
+
+  // Today's Schedules & Meetings
+  const todaySchedules = useMemo(() => {
+    const targetDay = currentWeek.days[selectedDate] || currentWeek.days[todayDate];
+    return targetDay?.schedules || [];
+  }, [currentWeek.days, selectedDate, todayDate]);
+
+  // All Weekly Schedules & Meetings
+  const weeklySchedules = useMemo(() => {
+    const all: ScheduleItem[] = [];
+    Object.values(currentWeek.days).forEach((d) => {
+      if (d.schedules) {
+        all.push(...d.schedules);
+      }
+    });
+    return all.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.time.localeCompare(b.time);
+    });
+  }, [currentWeek.days]);
+
+  // Schedules Summary Metrics
+  const schedulesSummary = useMemo(() => {
+    const total = weeklySchedules.length;
+    const completed = weeklySchedules.filter((s) => s.completed).length;
+    const upcoming = total - completed;
+    return { total, completed, upcoming };
+  }, [weeklySchedules]);
 
   // Calculated Week Score
   const calculatedWeekScore = useMemo<WeekScore>(() => {
@@ -984,6 +1023,102 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
+  const addScheduleItem = (item: Omit<ScheduleItem, 'id' | 'completed'>) => {
+    const targetDate = item.date || selectedDate;
+    setState((prev) => {
+      const week = { ...prev.currentWeek };
+      const day = week.days[targetDate];
+      if (!day) return prev;
+
+      const newItem: ScheduleItem = {
+        ...item,
+        id: `sch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        date: targetDate,
+        completed: false,
+      };
+
+      const updatedSchedules = [...(day.schedules || []), newItem];
+
+      week.days = {
+        ...week.days,
+        [targetDate]: {
+          ...day,
+          schedules: updatedSchedules,
+        },
+      };
+
+      return { ...prev, currentWeek: week };
+    });
+  };
+
+  const toggleScheduleItem = (itemId: string, date?: string) => {
+    const targetDate = date || selectedDate;
+    setState((prev) => {
+      const week = { ...prev.currentWeek };
+      let foundDate = targetDate;
+      if (!week.days[targetDate]?.schedules?.some((s) => s.id === itemId)) {
+        const dKey = Object.keys(week.days).find((k) =>
+          week.days[k].schedules?.some((s) => s.id === itemId)
+        );
+        if (dKey) foundDate = dKey;
+      }
+
+      const day = week.days[foundDate];
+      if (!day || !day.schedules) return prev;
+
+      const updatedSchedules = day.schedules.map((s) => {
+        if (s.id === itemId) {
+          const willBeDone = !s.completed;
+          return {
+            ...s,
+            completed: willBeDone,
+            completedAt: willBeDone ? formatTime12h() : undefined,
+          };
+        }
+        return s;
+      });
+
+      week.days = {
+        ...week.days,
+        [foundDate]: {
+          ...day,
+          schedules: updatedSchedules,
+        },
+      };
+
+      return { ...prev, currentWeek: week };
+    });
+  };
+
+  const deleteScheduleItem = (itemId: string, date?: string) => {
+    const targetDate = date || selectedDate;
+    setState((prev) => {
+      const week = { ...prev.currentWeek };
+      let foundDate = targetDate;
+      if (!week.days[targetDate]?.schedules?.some((s) => s.id === itemId)) {
+        const dKey = Object.keys(week.days).find((k) =>
+          week.days[k].schedules?.some((s) => s.id === itemId)
+        );
+        if (dKey) foundDate = dKey;
+      }
+
+      const day = week.days[foundDate];
+      if (!day || !day.schedules) return prev;
+
+      const updatedSchedules = day.schedules.filter((s) => s.id !== itemId);
+
+      week.days = {
+        ...week.days,
+        [foundDate]: {
+          ...day,
+          schedules: updatedSchedules,
+        },
+      };
+
+      return { ...prev, currentWeek: week };
+    });
+  };
+
   const updateReviewAnswers = (data: Partial<WeeklyReviewAnswers>) => {
     setState((prev) => {
       const week = { ...prev.currentWeek };
@@ -1103,6 +1238,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         aiWeeklySummary,
         spanishWeeklySummary,
         englishWeeklySummary,
+        todaySchedules,
+        weeklySchedules,
+        schedulesSummary,
         calculatedWeekScore,
 
         setSelectedDate,
@@ -1124,6 +1262,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateEnglish,
         addTransaction,
         deleteTransaction,
+        addScheduleItem,
+        toggleScheduleItem,
+        deleteScheduleItem,
         updateReviewAnswers,
         startNewResetWeek,
         exportJSON,

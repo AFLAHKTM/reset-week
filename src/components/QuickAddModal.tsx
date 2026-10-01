@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useResetWeek } from '../context/ResetWeekContext';
-import type { WeeklyOutcomes, TransactionCategory, TransactionType } from '../types';
-import { X, CheckSquare, CircleDollarSign, Sparkles, BookOpen, MessageSquarePlus } from 'lucide-react';
+import type { WeeklyOutcomes, TransactionCategory, TransactionType, ScheduleItemType } from '../types';
+import { X, CheckSquare, CircleDollarSign, Sparkles, BookOpen, MessageSquarePlus, CalendarClock } from 'lucide-react';
 
 export const QuickAddModal: React.FC = () => {
   const {
@@ -9,17 +9,27 @@ export const QuickAddModal: React.FC = () => {
     setIsQuickAddOpen,
     addOutcomeTask,
     addTransaction,
+    addScheduleItem,
     updateAIDiscovery,
     updateEnglish,
     updateReviewAnswers,
   } = useResetWeek();
 
-  type QuickTab = 'task' | 'finance' | 'ai' | 'article' | 'reflection';
+  type QuickTab = 'task' | 'meeting' | 'finance' | 'ai' | 'article' | 'reflection';
   const [tab, setTab] = useState<QuickTab>('task');
 
   // Task form state
   const [taskCategory, setTaskCategory] = useState<keyof WeeklyOutcomes>('officeAndElGrafico');
   const [taskText, setTaskText] = useState('');
+
+  // Schedule form state
+  const [schTitle, setSchTitle] = useState('');
+  const [schPerson, setSchPerson] = useState('');
+  const [schType, setSchType] = useState<ScheduleItemType>('meeting');
+  const [schTime, setSchTime] = useState('10:30 AM');
+  const [schDuration, setSchDuration] = useState('45 min');
+  const [schLocation, setSchLocation] = useState('');
+  const [schNotes, setSchNotes] = useState('');
 
   // Finance form state
   const [txType, setTxType] = useState<TransactionType>('out');
@@ -51,6 +61,26 @@ export const QuickAddModal: React.FC = () => {
     if (!taskText.trim()) return;
     addOutcomeTask(taskCategory, taskText);
     setTaskText('');
+    handleClose();
+  };
+
+  const handleScheduleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schTitle.trim()) return;
+    addScheduleItem({
+      title: schTitle.trim(),
+      person: schPerson.trim() || undefined,
+      type: schType,
+      date: new Date().toISOString().split('T')[0],
+      time: schTime.trim() || '10:30 AM',
+      duration: schDuration.trim() || undefined,
+      location: schLocation.trim() || undefined,
+      notes: schNotes.trim() || undefined,
+    });
+    setSchTitle('');
+    setSchPerson('');
+    setSchLocation('');
+    setSchNotes('');
     handleClose();
   };
 
@@ -145,6 +175,18 @@ export const QuickAddModal: React.FC = () => {
           >
             <CheckSquare className="w-3.5 h-3.5" />
             <span>Task</span>
+          </button>
+
+          <button
+            onClick={() => setTab('meeting')}
+            className={`flex items-center gap-1.5 py-3 px-3 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+              tab === 'meeting'
+                ? 'border-emerald-500 text-white'
+                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <CalendarClock className="w-3.5 h-3.5" />
+            <span>Meeting</span>
           </button>
 
           <button
@@ -245,6 +287,139 @@ export const QuickAddModal: React.FC = () => {
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl text-xs font-semibold transition-colors"
                 >
                   Add Task
+                </button>
+              </div>
+            </form>
+          )}
+
+          {tab === 'meeting' && (
+            <form onSubmit={handleScheduleSubmit} className="space-y-4">
+              {/* Type pills */}
+              <div>
+                <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                  Category
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { key: 'meeting' as const, label: 'Meeting', icon: '🤝' },
+                    { key: 'schedule' as const, label: 'Schedule', icon: '🗓️' },
+                    { key: 'program' as const, label: 'Program', icon: '🕌' },
+                    { key: 'visit' as const, label: 'Visit', icon: '🏡' },
+                  ].map((t) => (
+                    <button
+                      type="button"
+                      key={t.key}
+                      onClick={() => setSchType(t.key)}
+                      className={`py-2 px-1 text-center rounded-xl border text-[11px] font-medium transition-all ${
+                        schType === t.key
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 font-semibold'
+                          : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-neutral-300'
+                      }`}
+                    >
+                      <span className="block text-xs mb-0.5">{t.icon}</span>
+                      <span>{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                  Title / Purpose *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Client Design Proposal Review..."
+                  value={schTitle}
+                  onChange={(e) => setSchTitle(e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                    Person / With
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Faisal / Omar"
+                    value={schPerson}
+                    onChange={(e) => setSchPerson(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                    Time
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 10:30 AM"
+                    value={schTime}
+                    onChange={(e) => setSchTime(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                    Duration
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 45 min"
+                    value={schDuration}
+                    onChange={(e) => setSchDuration(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                    Location / Link
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Office / Meet"
+                    value={schLocation}
+                    onChange={(e) => setSchLocation(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono text-neutral-400 mb-1.5">
+                  Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bring contract proposal..."
+                  value={schNotes}
+                  onChange={(e) => setSchNotes(e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2.5 text-xs text-neutral-400 hover:text-neutral-200 rounded-xl hover:bg-neutral-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!schTitle.trim()}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl text-xs font-semibold transition-colors"
+                >
+                  Schedule
                 </button>
               </div>
             </form>

@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Sparkles,
   Layers,
+  CalendarClock,
 } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
 
@@ -25,6 +26,8 @@ export const HomeView: React.FC = () => {
     sleepConsistencyPercentage,
     outcomesProgress,
     nowAction,
+    todaySchedules,
+    toggleScheduleItem,
     toggleHabit,
     updateHabitNotes,
     updateRoutineStatus,
@@ -400,7 +403,90 @@ export const HomeView: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. THIS WEEK'S OUTCOMES (Quick Glance) */}
+      {/* 5. TODAY'S SCHEDULE & MEETINGS */}
+      <section className="bg-obsidian-900/60 border border-neutral-800/80 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <CalendarClock className="w-4 h-4 text-sky-400" />
+            <h3 className="text-xs sm:text-sm font-bold text-white">Today's Schedule & Meetings</h3>
+            {todaySchedules.length > 0 && (
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                {todaySchedules.filter((s) => s.completed).length}/{todaySchedules.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className="text-[11px] sm:text-xs text-neutral-400 hover:text-white font-mono flex items-center gap-1 transition-colors"
+          >
+            <span>Full Schedule</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        {todaySchedules.length === 0 ? (
+          <div className="p-3 bg-neutral-950/60 border border-neutral-800/60 rounded-xl flex items-center justify-between text-xs text-neutral-400">
+            <span>No commitments scheduled for today.</span>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className="text-emerald-400 hover:text-emerald-300 font-medium font-mono text-[11px]"
+            >
+              + Schedule
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {todaySchedules.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => toggleScheduleItem(item.id, item.date)}
+                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 cursor-pointer transition-all active:scale-[0.99] ${
+                  item.completed
+                    ? 'bg-neutral-950/40 border-neutral-800/40 text-neutral-400'
+                    : 'bg-neutral-950/80 border-neutral-800/80 hover:border-neutral-700 text-neutral-200'
+                }`}
+              >
+                <div className="flex items-center space-x-2.5 flex-1 min-w-0">
+                  <button
+                    type="button"
+                    className={`flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-colors ${
+                      item.completed
+                        ? 'bg-emerald-600 border border-emerald-500 text-white'
+                        : 'border-2 border-neutral-600 text-transparent'
+                    }`}
+                  >
+                    {item.completed && <CheckCircle2 className="w-3 h-3" />}
+                  </button>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-neutral-900 border border-neutral-800 text-neutral-300">
+                        {item.time}
+                      </span>
+                      {item.person && (
+                        <span className="text-[10px] font-mono text-neutral-400 truncate">
+                          with {item.person}
+                        </span>
+                      )}
+                    </div>
+                    <div className={`text-xs font-medium mt-0.5 truncate ${item.completed ? 'line-through text-neutral-500' : 'text-neutral-100'}`}>
+                      {item.title}
+                    </div>
+                  </div>
+                </div>
+
+                {item.location && (
+                  <span className="text-[10px] font-mono text-neutral-500 flex-shrink-0">
+                    {item.location}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 6. THIS WEEK'S OUTCOMES (Quick Glance) */}
       <section className="bg-obsidian-900/60 border border-neutral-800/80 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

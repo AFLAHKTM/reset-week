@@ -88,6 +88,7 @@ export function createDefaultDayData(date: string, dayName: string, dayIndex: nu
       completed: false,
     },
     transactions: [],
+    schedules: [],
     dailyReflection: '',
   };
 }
@@ -290,6 +291,48 @@ export function getInitialSeedData(): {
         { id: 'tx-2', date: day1Key, type: 'out', amount: 3200, category: 'Office', description: 'Desk cable management & organizers', time: '02:15 PM' },
         { id: 'tx-3', date: day1Key, type: 'out', amount: 850, category: 'Food', description: 'Healthy lunch meal', time: '01:00 PM' },
       ];
+
+      d1.schedules = [
+        {
+          id: 'sch-1',
+          title: "Jumu'ah Prayer & Community Program",
+          person: 'Community',
+          type: 'program',
+          date: day1Key,
+          time: '12:45 PM',
+          duration: '60 min',
+          location: 'Central Mosque',
+          notes: 'Early arrival for Surah Kahf and reflection.',
+          completed: true,
+          completedAt: '01:50 PM',
+        },
+        {
+          id: 'sch-2',
+          title: 'Family & Parents Home Visit',
+          person: 'Family & Parents',
+          type: 'visit',
+          date: day1Key,
+          time: '04:30 PM',
+          duration: '90 min',
+          location: 'Home',
+          notes: 'Catch up, tea, and family bonding.',
+          completed: true,
+          completedAt: '06:15 PM',
+        },
+        {
+          id: 'sch-3',
+          title: 'Ratib Al-Haddad Weekly Circle',
+          person: 'Study Circle',
+          type: 'program',
+          date: day1Key,
+          time: '08:00 PM',
+          duration: '45 min',
+          location: 'Community Hall',
+          notes: 'Spiritual litany and dhikr recitation.',
+          completed: true,
+          completedAt: '08:50 PM',
+        },
+      ];
     }
 
     if (currentWeek.days[day2Key]) {
@@ -305,6 +348,34 @@ export function getInitialSeedData(): {
         { id: 'tx-4', date: day2Key, type: 'out', amount: 1500, category: 'Personal', description: 'Books and stationery', time: '05:30 PM' },
         { id: 'tx-5', date: day2Key, type: 'pending', amount: 12000, category: 'Business', description: 'Invoice sent to design client', time: '06:00 PM' },
       ];
+      d2.schedules = [
+        {
+          id: 'sch-4',
+          title: 'El Grafico Prototype Review & Task Sync',
+          person: 'Faisal (Lead Designer)',
+          type: 'meeting',
+          date: day2Key,
+          time: '10:30 AM',
+          duration: '45 min',
+          location: 'Office Studio',
+          notes: 'Review client workflow templates and branding assets.',
+          completed: true,
+          completedAt: '11:20 AM',
+        },
+        {
+          id: 'sch-5',
+          title: 'Workspace Desk & Equipment Shopping',
+          person: 'Myself',
+          type: 'schedule',
+          date: day2Key,
+          time: '03:00 PM',
+          duration: '90 min',
+          location: 'City Mart',
+          notes: 'Cable organizers, desk lamp, and stationery.',
+          completed: true,
+          completedAt: '04:40 PM',
+        },
+      ];
     }
 
     // Today's entry
@@ -318,6 +389,44 @@ export function getInitialSeedData(): {
       cd.transactions = [
         { id: 'tx-6', date: currentDayKey, type: 'in', amount: 18000, category: 'Business', description: 'Consulting milestone payment', time: '10:00 AM' },
         { id: 'tx-7', date: currentDayKey, type: 'out', amount: 450, category: 'Food', description: 'Coffee & light breakfast', time: '08:30 AM' },
+      ];
+      cd.schedules = [
+        {
+          id: 'sch-6',
+          title: 'Client Discovery Call — New Brand Project',
+          person: 'Omar (Retail Co)',
+          type: 'meeting',
+          date: currentDayKey,
+          time: '11:00 AM',
+          duration: '30 min',
+          location: 'Google Meet',
+          notes: 'Discuss scope, deliverables, and service proposal.',
+          completed: false,
+        },
+        {
+          id: 'sch-7',
+          title: 'Evening Program & Halaqah',
+          person: 'Youth Circle',
+          type: 'program',
+          date: currentDayKey,
+          time: '07:30 PM',
+          duration: '60 min',
+          location: 'Learning Center',
+          notes: 'Topic: Consistency in personal habits.',
+          completed: false,
+        },
+        {
+          id: 'sch-8',
+          title: 'Mentor Catch-up & Advice',
+          person: 'Ustadh Tariq',
+          type: 'meeting',
+          date: currentDayKey,
+          time: '09:00 PM',
+          duration: '40 min',
+          location: 'Call / Coffee',
+          notes: 'Reviewing reset week trajectory and business milestones.',
+          completed: false,
+        },
       ];
     }
   }

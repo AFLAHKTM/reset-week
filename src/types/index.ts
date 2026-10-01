@@ -81,6 +81,22 @@ export interface TransactionEntry {
   time: string;
 }
 
+export type ScheduleItemType = 'meeting' | 'schedule' | 'program' | 'visit';
+
+export interface ScheduleItem {
+  id: string;
+  title: string;
+  person?: string;
+  type: ScheduleItemType;
+  date: string; // YYYY-MM-DD
+  time: string; // e.g. "10:30 AM"
+  duration?: string; // e.g. "45 min"
+  location?: string; // e.g. "Office", "Google Meet"
+  notes?: string;
+  completed: boolean;
+  completedAt?: string;
+}
+
 export interface DayData {
   date: string; // YYYY-MM-DD
   dayName: string; // "Friday", "Saturday", etc.
@@ -95,6 +111,7 @@ export interface DayData {
   spanish: SpanishTracker;
   english: EnglishArticle;
   transactions: TransactionEntry[];
+  schedules?: ScheduleItem[];
   dailyReflection?: string;
 }
 
@@ -186,4 +203,4 @@ export interface ResetWeekCycle {
   archivedAt?: string;
 }
 
-export type TabType = 'home' | 'week' | 'learn' | 'finance' | 'review';
+export type TabType = 'home' | 'week' | 'schedule' | 'learn' | 'finance' | 'review';
