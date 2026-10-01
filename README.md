@@ -1,32 +1,49 @@
-# React + TypeScript + Vite
+# RESET WEEK · Friday → Friday Personal OS
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> “Build the system. Then build the future.”
 
-Currently, two official plugins are available:
+**RESET WEEK** is a clean, minimalist personal operating system designed to execute a high-agency **Friday → Friday reset cycle**. Built with **React 19**, **TypeScript**, **Tailwind CSS**, and **Vite**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Designed with a **Notion × Linear × Apple Journal** aesthetic: calm, typography-first, high whitespace, and focused on immediate daily execution.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Core Pillars & Features
 
-## Expanding the Oxlint configuration
+- **NOW Priority**: Immediately answers *“What should I do now?”* by surfacing the most critical next action before analytics.
+- **5 Non-Negotiables**:
+  - 📖 1 Juz Quran
+  - 🤖 AI Update (Tools & Workflows)
+  - 🇪🇸 Spanish (15-min daily goal)
+  - 🇬🇧 English Reading (1 article + vocabulary capture)
+  - 💰 Transaction Check (Money In, Out, Pending & Balances)
+- **Sleep & Wake Baseline**: Tracks Tahajjud (03:30 AM), Wake Up (05:30 AM), and Sleep (11:00 PM) with 3-state consistency indicators.
+- **Weekly Outcomes**:
+  - 🏢 Office + El Grafico Prototype
+  - 👤 Personal Brand — Just Start
+  - 🧠 Personal Reset
+- **🌿 Mind Reset**: Dedicated retreat card with 6-step checklist and 4 deep reflection prompts.
+- **Weekly Review & Reset**: Guided 7-question audit every Thursday evening, generated Week Score, and a clean cycle rollover button preserving history.
+- **Mobile-First UX**: Responsive 7-day grid, native bottom sheets, floating quick-add (`+`), and safe-area notch insets.
+- **Data Privacy**: Local browser persistence with JSON Export & Import backups.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+---
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Getting Started
+
+### 1. Install Dependencies
+```bash
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### 2. Run Local Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### 3. Production Build
+```bash
+npm run build
+```
+Creates an optimized static bundle in `dist/`.
