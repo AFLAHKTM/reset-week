@@ -50,6 +50,20 @@ export const WeekView: React.FC = () => {
       color: 'bg-amber-500',
       progress: outcomesProgress.reset,
     },
+    {
+      key: 'general',
+      title: '🛒 GENERAL & COMMUNITY',
+      description: 'Personal errands, shopping, home visits, meeting key persons & programs',
+      color: 'bg-sky-500',
+      progress: outcomesProgress.general,
+    },
+    {
+      key: 'aurad',
+      title: '📿 AURAD & SPIRITUAL RECITATIONS',
+      description: 'Litanies & Surahs: Ratib Al-Haddad, Surah Yaseen, Surat Al-Fath & daily adhkar',
+      color: 'bg-purple-500',
+      progress: outcomesProgress.aurad,
+    },
   ];
 
   const handleAddTaskSubmit = (category: keyof WeeklyOutcomes, e: React.FormEvent) => {
@@ -72,7 +86,7 @@ export const WeekView: React.FC = () => {
             Execution Focus
           </span>
           <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight mt-0.5">
-            THIS WEEK'S 3 OUTCOMES
+            THIS WEEK'S OUTCOMES
           </h2>
           <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5">
             {currentWeek.title} ({currentWeek.startDate.slice(5)} → {currentWeek.endDate.slice(5)})
@@ -87,11 +101,16 @@ export const WeekView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Outcome Cards */}
+      {/* Outcome Cards */}
       <div className="space-y-4 sm:space-y-6">
         {outcomesList.map((item) => {
-          const outcome = currentWeek.outcomes[item.key];
-          const completedCount = outcome.tasks.filter((t) => t.completed).length;
+          const outcome = currentWeek.outcomes?.[item.key] || {
+            title: item.title,
+            description: item.description,
+            tasks: [],
+          };
+          const tasks = outcome.tasks || [];
+          const completedCount = tasks.filter((t) => t.completed).length;
 
           return (
             <div

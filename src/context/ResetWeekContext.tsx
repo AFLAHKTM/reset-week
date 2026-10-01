@@ -14,7 +14,7 @@ import type {
   WeeklyOutcomes,
 } from '../types';
 import { formatISODate, formatTime12h } from '../utils/dateUtils';
-import { getInitialSeedData, createNewResetWeek } from '../utils/seedData';
+import { getInitialSeedData, createNewResetWeek, createInitialOutcomes } from '../utils/seedData';
 import confetti from 'canvas-confetti';
 
 interface ResetWeekContextType {
@@ -41,6 +41,8 @@ interface ResetWeekContextType {
     office: number;
     brand: number;
     reset: number;
+    general: number;
+    aurad: number;
     overall: number;
   };
   nowAction: {
@@ -62,6 +64,11 @@ interface ResetWeekContextType {
     net: number;
     pending: number;
   };
+  aiWeeklySummary: {
+    totalMinutes: number;
+    streak: number;
+    completedDays: number;
+  };
   spanishWeeklySummary: {
     totalMinutes: number;
     streak: number;
@@ -69,6 +76,9 @@ interface ResetWeekContextType {
   };
   englishWeeklySummary: {
     articlesRead: number;
+    totalMinutes: number;
+    streak: number;
+    completedDays: number;
   };
   calculatedWeekScore: WeekScore;
 
@@ -123,6 +133,17 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.currentWeek && Array.isArray(parsed.history)) {
+          const initialOutcomes = createInitialOutcomes();
+          if (!parsed.currentWeek.outcomes) {
+            parsed.currentWeek.outcomes = initialOutcomes;
+          } else {
+            if (!parsed.currentWeek.outcomes.general) {
+              parsed.currentWeek.outcomes.general = initialOutcomes.general;
+            }
+            if (!parsed.currentWeek.outcomes.aurad) {
+              parsed.currentWeek.outcomes.aurad = initialOutcomes.aurad;
+            }
+          }
           return parsed;
         }
       }
@@ -247,18 +268,20 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Weekly Outcomes Progress
   const outcomesProgress = useMemo(() => {
-    const calcCat = (tasks: { completed: boolean }[]) => {
+    const calcCat = (tasks?: { completed: boolean }[]) => {
       if (!tasks || tasks.length === 0) return 0;
       const done = tasks.filter((t) => t.completed).length;
       return Math.round((done / tasks.length) * 100);
     };
 
-    const office = calcCat(currentWeek.outcomes.officeAndElGrafico.tasks);
-    const brand = calcCat(currentWeek.outcomes.personalBrand.tasks);
-    const reset = calcCat(currentWeek.outcomes.personalReset.tasks);
-    const overall = Math.round((office + brand + reset) / 3);
+    const office = calcCat(currentWeek.outcomes?.officeAndElGrafico?.tasks);
+    const brand = calcCat(currentWeek.outcomes?.personalBrand?.tasks);
+    const reset = calcCat(currentWeek.outcomes?.personalReset?.tasks);
+    const general = calcCat(currentWeek.outcomes?.general?.tasks);
+    const aurad = calcCat(currentWeek.outcomes?.aurad?.tasks);
+    const overall = Math.round((office + brand + reset + general + aurad) / 5);
 
-    return { office, brand, reset, overall };
+    return { office, brand, reset, general, aurad, overall };
   }, [currentWeek.outcomes]);
 
   // Smart NOW recommendation answering: "What should I do now?"
@@ -322,7 +345,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     // 2. If all 5 non-negotiables are complete, look for the next uncompleted outcome task
-    const nextOfficeTask = currentWeek.outcomes.officeAndElGrafico.tasks.find((t) => !t.completed);
+    const nextOfficeTask = currentWeek.outcomes?.officeAndElGrafico?.tasks.find((t) => !t.completed);
     if (nextOfficeTask) {
       return {
         title: nextOfficeTask.text,
@@ -333,7 +356,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
     }
 
-    const nextBrandTask = currentWeek.outcomes.personalBrand.tasks.find((t) => !t.completed);
+    const nextBrandTask = currentWeek.outcomes?.personalBrand?.tasks.find((t) => !t.completed);
     if (nextBrandTask) {
       return {
         title: nextBrandTask.text,
@@ -344,13 +367,35 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
     }
 
-    const nextResetTask = currentWeek.outcomes.personalReset.tasks.find((t) => !t.completed);
+    const nextResetTask = currentWeek.outcomes?.personalReset?.tasks.find((t) => !t.completed);
     if (nextResetTask) {
       return {
         title: nextResetTask.text,
         subtitle: '🧠 Personal Reset Milestone',
         type: 'outcome' as const,
         actionLabel: 'View Weekly Outcomes',
+        targetTab: 'week' as TabType,
+      };
+    }
+
+    const nextAuradTask = currentWeek.outcomes?.aurad?.tasks.find((t) => !t.completed);
+    if (nextAuradTask) {
+      return {
+        title: nextAuradTask.text,
+        subtitle: '📿 Aurad & Spiritual Recitation',
+        type: 'outcome' as const,
+        actionLabel: 'View Aurad & Tasks',
+        targetTab: 'week' as TabType,
+      };
+    }
+
+    const nextGeneralTask = currentWeek.outcomes?.general?.tasks.find((t) => !t.completed);
+    if (nextGeneralTask) {
+      return {
+        title: nextGeneralTask.text,
+        subtitle: '🛒 General & Errands Focus',
+        type: 'outcome' as const,
+        actionLabel: 'View General Tasks',
         targetTab: 'week' as TabType,
       };
     }
@@ -403,6 +448,25 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [currentWeek.days]);
 
+  // AI Weekly Stats
+  const aiWeeklySummary = useMemo(() => {
+    let totalMinutes = 0;
+    let completedDays = 0;
+    Object.values(currentWeek.days).forEach((d) => {
+      if (d.aiDiscovery) {
+        totalMinutes += d.aiDiscovery.minutesLogged || 0;
+        if (d.aiDiscovery.completed || (d.habits && d.habits.ai?.completed)) {
+          completedDays++;
+        }
+      }
+    });
+    return {
+      totalMinutes,
+      streak: completedDays,
+      completedDays,
+    };
+  }, [currentWeek.days]);
+
   // Spanish Weekly Stats
   const spanishWeeklySummary = useMemo(() => {
     let totalMinutes = 0;
@@ -425,13 +489,22 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // English Weekly Stats
   const englishWeeklySummary = useMemo(() => {
     let articlesRead = 0;
+    let totalMinutes = 0;
+    let completedDays = 0;
     Object.values(currentWeek.days).forEach((d) => {
-      if (d.english && (d.english.completed || d.english.title?.trim() || (d.habits && d.habits.english?.completed))) {
-        articlesRead++;
+      if (d.english) {
+        totalMinutes += d.english.minutesLogged || 0;
+        if (d.english.completed || d.english.title?.trim() || (d.habits && d.habits.english?.completed)) {
+          articlesRead += d.english.title?.trim() ? 1 : (d.english.completed ? 1 : 0);
+          completedDays++;
+        }
       }
     });
     return {
       articlesRead,
+      totalMinutes,
+      streak: completedDays,
+      completedDays,
     };
   }, [currentWeek.days]);
 
@@ -460,9 +533,11 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const office = outcomesProgress.office;
     const elGrafico = Math.round((outcomesProgress.office * 0.8 + outcomesProgress.brand * 0.2));
     const personalBrand = outcomesProgress.brand;
+    const general = outcomesProgress.general;
+    const aurad = outcomesProgress.aurad;
 
     const overall = Math.round(
-      (quran + ai + spanish + english + finance + office + elGrafico + personalBrand) / 8
+      (quran + ai + spanish + english + finance + office + elGrafico + personalBrand + general + aurad) / 10
     );
 
     return {
@@ -474,6 +549,8 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       office,
       elGrafico,
       personalBrand,
+      general,
+      aurad,
       overall,
     };
   }, [currentWeek.days, outcomesProgress]);
@@ -517,6 +594,13 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedDay.english = {
           ...day.english,
           completed: willBeCompleted,
+          minutesLogged: willBeCompleted && (day.english?.minutesLogged || 0) === 0 ? 15 : day.english?.minutesLogged || 0,
+        };
+      } else if (habitKey === 'ai') {
+        updatedDay.aiDiscovery = {
+          ...day.aiDiscovery,
+          completed: willBeCompleted,
+          minutesLogged: willBeCompleted && (day.aiDiscovery?.minutesLogged || 0) === 0 ? 15 : day.aiDiscovery?.minutesLogged || 0,
         };
       }
 
@@ -685,14 +769,37 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const day = week.days[selectedDate];
       if (!day) return prev;
 
+      const currentComponents = day.aiDiscovery?.components || {
+        discovery: false,
+        testing: false,
+        implementation: false,
+        takeaway: false,
+      };
+
       const updatedAI: AIDiscovery = {
         ...day.aiDiscovery,
         ...data,
+        components: {
+          ...currentComponents,
+          ...(data.components || {}),
+        },
         updatedAt: formatTime12h(),
       };
 
-      // If user logs content or marks tested, also ensure non-negotiable is marked done
-      const habitComplete = !!(updatedAI.toolOrTopic?.trim() && updatedAI.whyUseful?.trim());
+      const checkedCount = [
+        updatedAI.components?.discovery,
+        updatedAI.components?.testing,
+        updatedAI.components?.implementation,
+        updatedAI.components?.takeaway,
+      ].filter(Boolean).length;
+
+      const isDone =
+        (updatedAI.minutesLogged || 0) >= 15 ||
+        checkedCount >= 2 ||
+        updatedAI.completed ||
+        !!(updatedAI.toolOrTopic?.trim() && updatedAI.whyUseful?.trim());
+
+      updatedAI.completed = isDone;
 
       week.days = {
         ...week.days,
@@ -703,8 +810,8 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             ...day.habits,
             ai: {
               ...day.habits.ai,
-              completed: habitComplete || day.habits.ai.completed,
-              completedAt: habitComplete ? (day.habits.ai.completedAt || formatTime12h()) : day.habits.ai.completedAt,
+              completed: isDone || day.habits.ai.completed,
+              completedAt: isDone ? (day.habits.ai.completedAt || formatTime12h()) : day.habits.ai.completedAt,
             },
           },
         },
@@ -764,12 +871,39 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const day = week.days[selectedDate];
       if (!day) return prev;
 
+      const currentComponents = day.english?.components || {
+        reading: false,
+        vocabulary: false,
+        learned: false,
+        speaking: false,
+      };
+
       const updatedEnglish: EnglishArticle = {
         ...day.english,
         ...data,
+        components: {
+          ...currentComponents,
+          ...(data.components || {}),
+        },
       };
 
-      const isDone = !!(updatedEnglish.title?.trim() || updatedEnglish.completed);
+      const checkedCount = [
+        updatedEnglish.components?.reading,
+        updatedEnglish.components?.vocabulary,
+        updatedEnglish.components?.learned,
+        updatedEnglish.components?.speaking,
+      ].filter(Boolean).length;
+
+      const isDone =
+        (updatedEnglish.minutesLogged || 0) >= 15 ||
+        checkedCount >= 2 ||
+        !!(updatedEnglish.title?.trim()) ||
+        updatedEnglish.completed;
+
+      updatedEnglish.completed = isDone;
+      if (isDone && !updatedEnglish.readAt) {
+        updatedEnglish.readAt = formatTime12h();
+      }
 
       week.days = {
         ...week.days,
@@ -966,6 +1100,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         nowAction,
         financeTodaySummary,
         financeWeeklySummary,
+        aiWeeklySummary,
         spanishWeeklySummary,
         englishWeeklySummary,
         calculatedWeekScore,

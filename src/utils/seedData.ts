@@ -55,6 +55,14 @@ export function createDefaultDayData(date: string, dayName: string, dayIndex: nu
       whatCanUseFor: '',
       tested: false,
       takeaway: '',
+      minutesLogged: 0,
+      components: {
+        discovery: false,
+        testing: false,
+        implementation: false,
+        takeaway: false,
+      },
+      completed: false,
     },
     spanish: {
       vocabulary: false,
@@ -70,6 +78,13 @@ export function createDefaultDayData(date: string, dayName: string, dayIndex: nu
       topic: '',
       learned: '',
       vocabulary: '',
+      minutesLogged: 0,
+      components: {
+        reading: false,
+        vocabulary: false,
+        learned: false,
+        speaking: false,
+      },
       completed: false,
     },
     transactions: [],
@@ -112,7 +127,28 @@ export function createInitialOutcomes(): WeeklyOutcomes {
         { id: 'pr-2', text: 'Complete daily Quran', completed: true, completedAt: 'Sun' },
         { id: 'pr-3', text: 'Complete learning routine', completed: false },
         { id: 'pr-4', text: 'Reduce unnecessary screen time', completed: true, completedAt: 'Sun' },
-        { id: 'pr-5', text: 'Review week', completed: false },
+      ],
+    },
+    general: {
+      title: '🛒 GENERAL & COMMUNITY',
+      description: 'Errands, shopping, home visits, meeting persons & attending programs',
+      tasks: [
+        { id: 'gen-1', text: 'Shopping (Groceries & essentials)', completed: true, completedAt: 'Fri' },
+        { id: 'gen-2', text: 'Home visit (Family & relatives)', completed: true, completedAt: 'Sat' },
+        { id: 'gen-3', text: 'Meet / show key persons', completed: false },
+        { id: 'gen-4', text: 'Attend scheduled programs & events', completed: false },
+      ],
+    },
+    aurad: {
+      title: '📿 AURAD & SPIRITUAL RECITATIONS',
+      description: 'Litanies & Surahs: Ratib Al-Haddad, Yaseen, Al-Fath, Al-Waqiah & Al-Mulk',
+      tasks: [
+        { id: 'aur-1', text: 'Ratib Al-Haddad', completed: true, completedAt: 'Fri' },
+        { id: 'aur-2', text: 'Surah Yaseen', completed: true, completedAt: 'Sat' },
+        { id: 'aur-3', text: 'Surat Al-Fath', completed: false },
+        { id: 'aur-4', text: 'Surah Al-Waqi\'ah', completed: false },
+        { id: 'aur-5', text: 'Surah Al-Mulk', completed: false },
+        { id: 'aur-6', text: 'Surah Al-Kahf (Friday)', completed: true, completedAt: 'Fri' },
       ],
     },
   };
@@ -214,6 +250,14 @@ export function getInitialSeedData(): {
         whatCanUseFor: 'Drafting service workflows for El Grafico clients.',
         tested: true,
         takeaway: 'Hybrid reasoning simplifies building agentic pipelines without multiple models.',
+        minutesLogged: 20,
+        components: {
+          discovery: true,
+          testing: true,
+          implementation: true,
+          takeaway: true,
+        },
+        completed: true,
       };
 
       d1.spanish = {
@@ -231,6 +275,13 @@ export function getInitialSeedData(): {
         topic: 'Mental Models & Productivity',
         learned: 'Focusing on the trajectory and daily environment design produces 10x better returns than obsessing on targets.',
         vocabulary: 'Ineffable, Ergonomic friction, Compounding momentum',
+        minutesLogged: 25,
+        components: {
+          reading: true,
+          vocabulary: true,
+          learned: true,
+          speaking: false,
+        },
         completed: true,
       };
 

@@ -212,6 +212,8 @@ export const QuickAddModal: React.FC = () => {
                   <option value="officeAndElGrafico">🏢 Office + El Grafico Prototype</option>
                   <option value="personalBrand">👤 Personal Brand — Just Start</option>
                   <option value="personalReset">🧠 Personal Reset</option>
+                  <option value="general">🛒 General (Shopping, Home Visits, Programs)</option>
+                  <option value="aurad">📿 Aurad (Haddad, Yaseen, Al-Fath)</option>
                 </select>
               </div>
 

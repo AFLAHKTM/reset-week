@@ -400,16 +400,19 @@ export const HomeView: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. THIS WEEK'S 3 OUTCOMES (Quick Glance) */}
+      {/* 5. THIS WEEK'S OUTCOMES (Quick Glance) */}
       <section className="bg-obsidian-900/60 border border-neutral-800/80 rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Layers className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-xs sm:text-sm font-bold text-white">This Week's 3 Outcomes</h3>
+            <h3 className="text-xs sm:text-sm font-bold text-white">This Week's Outcomes</h3>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              {outcomesProgress.overall}%
+            </span>
           </div>
           <button
             onClick={() => setActiveTab('week')}
-            className="text-[11px] sm:text-xs text-neutral-400 hover:text-white font-mono flex items-center gap-1"
+            className="text-[11px] sm:text-xs text-neutral-400 hover:text-white font-mono flex items-center gap-1 transition-colors"
           >
             <span>All Tasks</span>
             <ArrowRight className="w-3 h-3" />
@@ -418,9 +421,9 @@ export const HomeView: React.FC = () => {
 
         <div className="space-y-2.5">
           {/* Office */}
-          <div>
+          <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-neutral-300 font-medium truncate">
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
                 🏢 Office + El Grafico Prototype
               </span>
               <span className="font-mono text-neutral-400">{outcomesProgress.office}%</span>
@@ -434,9 +437,9 @@ export const HomeView: React.FC = () => {
           </div>
 
           {/* Personal Brand */}
-          <div>
+          <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-neutral-300 font-medium truncate">
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
                 👤 Personal Brand — Just Start
               </span>
               <span className="font-mono text-neutral-400">{outcomesProgress.brand}%</span>
@@ -450,9 +453,9 @@ export const HomeView: React.FC = () => {
           </div>
 
           {/* Personal Reset */}
-          <div>
+          <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-neutral-300 font-medium truncate">
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
                 🧠 Personal Reset
               </span>
               <span className="font-mono text-neutral-400">{outcomesProgress.reset}%</span>
@@ -461,6 +464,38 @@ export const HomeView: React.FC = () => {
               <div
                 className="bg-amber-500 h-full rounded-full transition-all duration-300"
                 style={{ width: `${outcomesProgress.reset}%` }}
+              />
+            </div>
+          </div>
+
+          {/* General */}
+          <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
+                🛒 General (Shopping, Home Visits, Programs)
+              </span>
+              <span className="font-mono text-neutral-400">{outcomesProgress.general}%</span>
+            </div>
+            <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/80">
+              <div
+                className="bg-sky-500 h-full rounded-full transition-all duration-300"
+                style={{ width: `${outcomesProgress.general}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Aurad */}
+          <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
+                📿 Aurad (Haddad, Yaseen, Al-Fath)
+              </span>
+              <span className="font-mono text-neutral-400">{outcomesProgress.aurad}%</span>
+            </div>
+            <div className="w-full bg-neutral-950 h-1.5 rounded-full overflow-hidden border border-neutral-800/80">
+              <div
+                className="bg-purple-500 h-full rounded-full transition-all duration-300"
+                style={{ width: `${outcomesProgress.aurad}%` }}
               />
             </div>
           </div>

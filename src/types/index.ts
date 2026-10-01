@@ -20,6 +20,13 @@ export interface RoutineItem {
   note?: string;
 }
 
+export interface AIFocusComponents {
+  discovery: boolean; // Tool Discovery
+  testing: boolean;   // Prompt / Workflow Test
+  implementation: boolean; // Live Application
+  takeaway: boolean;  // Core Lesson Documented
+}
+
 export interface AIDiscovery {
   toolOrTopic: string;
   whatIsNew: string;
@@ -27,6 +34,9 @@ export interface AIDiscovery {
   whatCanUseFor: string;
   tested: boolean;
   takeaway: string;
+  minutesLogged: number; // e.g. 15
+  components: AIFocusComponents;
+  completed: boolean;
   updatedAt?: string;
 }
 
@@ -39,12 +49,21 @@ export interface SpanishTracker {
   completed: boolean;
 }
 
+export interface EnglishFocusComponents {
+  reading: boolean;    // Article Reading
+  vocabulary: boolean; // Vocabulary Capture
+  learned: boolean;    // 1 Thing Learned
+  speaking: boolean;   // Pronunciation & Speaking
+}
+
 export interface EnglishArticle {
   title: string;
   source: string;
   topic: string;
   learned: string;
   vocabulary: string;
+  minutesLogged: number; // e.g. 15
+  components: EnglishFocusComponents;
   completed: boolean;
   readAt?: string;
 }
@@ -102,6 +121,16 @@ export interface WeeklyOutcomes {
     description: string;
     tasks: OutcomeTask[];
   };
+  general: {
+    title: string;
+    description: string;
+    tasks: OutcomeTask[];
+  };
+  aurad: {
+    title: string;
+    description: string;
+    tasks: OutcomeTask[];
+  };
 }
 
 export interface MindReset {
@@ -133,6 +162,8 @@ export interface WeekScore {
   office: number;
   elGrafico: number;
   personalBrand: number;
+  general?: number;
+  aurad?: number;
   overall: number;
 }
 

@@ -88,6 +88,8 @@ export const ReviewView: React.FC = () => {
     { label: 'Office', value: calculatedWeekScore.office },
     { label: 'El Grafico', value: calculatedWeekScore.elGrafico },
     { label: 'Brand', value: calculatedWeekScore.personalBrand },
+    { label: 'General', value: calculatedWeekScore.general ?? 0 },
+    { label: 'Aurad', value: calculatedWeekScore.aurad ?? 0 },
   ];
 
   const handleConfirmReset = () => {
