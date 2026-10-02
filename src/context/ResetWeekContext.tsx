@@ -19,7 +19,7 @@ import type {
 } from '../types';
 import { formatISODate, formatTime12h } from '../utils/dateUtils';
 import { getInitialSeedData, createNewResetWeek, createInitialOutcomes, createInitialChatMessages, createInitialContacts, createInitialChatThreads } from '../utils/seedData';
-import { detectScheduleFromText } from '../utils/chatParser';
+import { detectScheduleFromText, extractMainHeading } from '../utils/chatParser';
 import confetti from 'canvas-confetti';
 
 interface ResetWeekContextType {
@@ -178,6 +178,17 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (!parsed.currentWeek.outcomes.aurad) {
               parsed.currentWeek.outcomes.aurad = initialOutcomes.aurad;
             }
+          }
+          if (parsed.currentWeek?.days) {
+            Object.values(parsed.currentWeek.days).forEach((day: any) => {
+              if (Array.isArray(day?.schedules)) {
+                day.schedules.forEach((sch: any) => {
+                  if (sch && sch.title) {
+                    sch.title = extractMainHeading(sch.title, sch.type);
+                  }
+                });
+              }
+            });
           }
           if (!parsed.chatMessages || !Array.isArray(parsed.chatMessages)) {
             parsed.chatMessages = createInitialChatMessages(Object.keys(parsed.currentWeek.days));
@@ -1192,6 +1203,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       autoScheduleId: newScheduleId,
       scheduleDetails: {
         title: detected.title,
+        rawText: cleanText,
         date: detected.date,
         time: detected.time,
         duration: detected.duration,
@@ -1247,9 +1259,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const replyId = `msg-reply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       
       const replyLines = [
-        '✅ Scheduled exactly as typed!',
+        `✅ Scheduled: ${detected.title}`,
         '',
-        `📅 "${detected.title}"`,
+        `📌 Event: "${detected.title}"`,
         `🗓️ Date: ${detected.date}`,
         `⏰ Time: ${detected.time}`,
       ];

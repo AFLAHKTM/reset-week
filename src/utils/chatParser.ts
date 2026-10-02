@@ -254,9 +254,12 @@ export function detectScheduleFromText(
     type = 'meeting';
   }
 
-  // Return detected schedule: title scheduled EXACTLY AS TYPED
+  // 8. Extract concise main heading (e.g. "Hospital Visit", "Meeting with Zack")
+  const mainHeading = extractMainHeading(cleanText, type);
+
   return {
-    title: cleanText,
+    title: mainHeading,
+    rawText: cleanText,
     person: personStr,
     type,
     date: targetDate,
@@ -266,4 +269,57 @@ export function detectScheduleFromText(
     agenda: agendaAndNotes,
     notes: agendaAndNotes || 'Scheduled via Chatbot',
   };
+}
+
+/**
+ * Extracts the clean core subject / main heading from a schedule message,
+ * removing parameter clauses like "on ...", "at ...", "for ...", "duration ...", time/date.
+ * E.g.: "Hospital Visit at 7 AM today at Orchid Hospital for Basheer Usthad." -> "Hospital Visit"
+ */
+export function extractMainHeading(text: string, fallbackType: ScheduleItemType = 'meeting'): string {
+  if (!text || !text.trim()) {
+    return fallbackType.charAt(0).toUpperCase() + fallbackType.slice(1);
+  }
+
+  const cleanText = text.trim();
+
+  // Pattern that identifies any parameter/clause start:
+  // - "on <time/date>"
+  // - "at <location/time>" or "@ <location>"
+  // - "duration ..."
+  // - "for <agenda>"
+  // - standalone time (e.g. "7am", "11:30 AM", "4 PM")
+  // - standalone day words ("today", "tomorrow", "sunday", etc.)
+  const paramMarkerRegex = /(?:\b(on|for)\s+)|(?:\b(duration)(?:\s*:|\s+is|\s+of)?\s+)|(?:\b(at)\s+|(@)\s*)|(?:\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b)|(?:\b(today|tomorrow|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b)/i;
+
+  const match = paramMarkerRegex.exec(cleanText);
+  if (match && match.index > 0) {
+    const candidate = cleanText.slice(0, match.index).replace(/[-–—,:;.]+\s*$/, '').trim();
+    if (candidate.length >= 2) {
+      return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+    }
+  }
+
+  // If marker was at index 0, try stripping parameter clauses
+  if (match && match.index === 0) {
+    const stripped = cleanText
+      .replace(/(?:\b(on|at|for|duration)\b|@)[^a-zA-Z0-9]*[a-zA-Z0-9\s:.-]*?(?=\b(on|at|for|duration|with)\b|@|$)/gi, ' ')
+      .replace(/\b(today|tomorrow|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/gi, ' ')
+      .replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, ' ')
+      .replace(/[-–—,:;.]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (stripped.length >= 2) {
+      return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+    }
+  }
+
+  // If no marker matched, clean up any trailing punctuation
+  const candidate = cleanText.replace(/[-–—,:;.]+\s*$/, '').trim();
+  if (candidate) {
+    return candidate.charAt(0).toUpperCase() + candidate.slice(1);
+  }
+
+  return fallbackType.charAt(0).toUpperCase() + fallbackType.slice(1);
 }

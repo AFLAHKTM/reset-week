@@ -85,7 +85,8 @@ export type ScheduleItemType = 'meeting' | 'schedule' | 'program' | 'visit';
 
 export interface ScheduleItem {
   id: string;
-  title: string;
+  title: string; // The main heading / subject (e.g. "Hospital Visit", "Meeting with Zack")
+  rawText?: string; // Original full message
   person?: string;
   type: ScheduleItemType;
   date: string; // YYYY-MM-DD
@@ -109,6 +110,7 @@ export interface ChatMessage {
   autoScheduleId?: string;
   scheduleDetails?: {
     title: string;
+    rawText?: string;
     date: string;
     time: string;
     duration?: string;
@@ -130,7 +132,8 @@ export interface ChatContact {
 }
 
 export interface DetectedSchedule {
-  title: string;
+  title: string; // Clean main heading (e.g. "Hospital Visit")
+  rawText: string; // Original input message
   person?: string;
   type: ScheduleItemType;
   date: string;

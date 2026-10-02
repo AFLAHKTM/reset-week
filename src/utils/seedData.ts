@@ -535,7 +535,8 @@ export function createInitialChatMessages(weekDates: string[] = []): ChatMessage
       timestamp: '09:15 AM',
       autoScheduleId: 'sch-1',
       scheduleDetails: {
-        title: 'Meeting with Zack on tomorrow 11:30 AM at Google Meet duration 45 min for UI Design review',
+        title: 'Meeting with Zack',
+        rawText: 'Meeting with Zack on tomorrow 11:30 AM at Google Meet duration 45 min for UI Design review',
         date: d2,
         time: '11:30 AM',
         duration: '45 min',
@@ -548,7 +549,7 @@ export function createInitialChatMessages(weekDates: string[] = []): ChatMessage
     {
       id: 'msg-init-3',
       sender: 'assistant',
-      text: `✅ Scheduled exactly as typed!\n\n📅 "Meeting with Zack on tomorrow 11:30 AM at Google Meet duration 45 min for UI Design review"\n🗓️ Date: ${d2}\n⏰ Time: 11:30 AM\n📍 Location: Google Meet\n⏱️ Duration: 45 min\n📝 Agenda / Notes: UI Design review\n\nAdded to your Agenda.`,
+      text: `✅ Scheduled: Meeting with Zack\n\n📌 Event: "Meeting with Zack"\n🗓️ Date: ${d2}\n⏰ Time: 11:30 AM\n📍 Location: Google Meet\n⏱️ Duration: 45 min\n📝 Agenda / Notes: UI Design review\n\nAdded to your Agenda.`,
       timestamp: '09:15 AM',
     },
   ];

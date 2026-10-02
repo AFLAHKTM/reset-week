@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
+import { extractMainHeading } from '../utils/chatParser';
 import { MessagesView } from './MessagesView';
 
 export const ScheduleView: React.FC = () => {
@@ -568,13 +569,14 @@ export const ScheduleView: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Title */}
+                      {/* Title / Main Heading */}
                       <h4
+                        title={item.rawText || item.title}
                         className={`text-xs sm:text-sm font-bold tracking-tight ${
                           item.completed ? 'line-through text-neutral-400' : 'text-neutral-100'
                         }`}
                       >
-                        {item.title}
+                        {extractMainHeading(item.title, item.type)}
                       </h4>
 
                       {/* Person & Location */}

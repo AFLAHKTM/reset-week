@@ -16,6 +16,7 @@ import {
   FileText,
   Timer,
 } from 'lucide-react';
+import { extractMainHeading } from '../utils/chatParser';
 
 export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
   const {
@@ -111,10 +112,10 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block font-mono">
-                  Scheduled Exactly as Typed!
+                  Scheduled in Agenda
                 </span>
                 <h4 className="text-xs sm:text-sm font-semibold text-white mt-0.5 truncate">
-                  "{lastAutoScheduledItem.title}"
+                  "{extractMainHeading(lastAutoScheduledItem.title, lastAutoScheduledItem.type)}"
                 </h4>
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-neutral-300">
                   <span className="flex items-center gap-1 font-mono text-emerald-300">
@@ -221,7 +222,7 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
                       <div className="flex items-center justify-between gap-1 mb-1.5">
                         <span className="flex items-center gap-1 text-[10px] font-bold font-mono uppercase tracking-wider text-emerald-400">
                           <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
-                          Scheduled Exactly as Typed
+                          Scheduled in Agenda
                         </span>
                         {(() => {
                           const badge = getTypeBadge(msg.scheduleDetails.type);
@@ -237,7 +238,7 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
                       </div>
 
                       <h4 className="text-xs font-semibold text-white break-words">
-                        "{msg.scheduleDetails.title}"
+                        "{extractMainHeading(msg.scheduleDetails.title, msg.scheduleDetails.type)}"
                       </h4>
 
                       <div className="mt-1.5 grid grid-cols-2 gap-1 text-[11px] text-neutral-300">
