@@ -1196,6 +1196,8 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         time: detected.time,
         duration: detected.duration,
         location: detected.location,
+        agenda: detected.agenda,
+        notes: detected.notes,
         type: detected.type,
       },
     };
@@ -1243,7 +1245,21 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setTimeout(() => {
       const replyTime = formatTime12h();
       const replyId = `msg-reply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-      const replyText = `✅ Scheduled exactly as typed!\n\n📅 "${detected.title}"\n🗓️ ${detected.date} at ${detected.time}${detected.location ? ` (${detected.location})` : ''}\n\nAdded to your Agenda.`;
+      
+      const replyLines = [
+        '✅ Scheduled exactly as typed!',
+        '',
+        `📅 "${detected.title}"`,
+        `🗓️ Date: ${detected.date}`,
+        `⏰ Time: ${detected.time}`,
+      ];
+      if (detected.location) replyLines.push(`📍 Location: ${detected.location}`);
+      if (detected.duration) replyLines.push(`⏱️ Duration: ${detected.duration}`);
+      if (detected.agenda || (detected.notes && detected.notes !== 'Scheduled via Chatbot')) {
+        replyLines.push(`📝 Agenda / Notes: ${detected.agenda || detected.notes}`);
+      }
+      replyLines.push('', 'Added to your Agenda.');
+      const replyText = replyLines.join('\n');
 
       const replyMessage: ChatMessage = {
         id: replyId,
@@ -1266,7 +1282,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         {
           id: `msg-welcome-${Date.now()}`,
           sender: 'assistant',
-          text: "Chat cleared! Type anything you want scheduled (e.g. \"Meeting with Zack tomorrow at 11:30 AM on Google Meet\" or \"Home visit on Sunday at 7:00 PM\") and I will add it to your schedule exactly as typed.",
+          text: "Chat cleared! Type commitments using natural syntax:\n• 'on' → time (e.g. on 11:30 AM, on tomorrow 4 PM)\n• 'at' or '@' → location (e.g. at Google Meet, @ Office)\n• 'duration' → duration (e.g. duration 45m, duration 1 hr)\n• 'for' → agenda and notes (e.g. for UI Design review)\n\nI will schedule it to your agenda exactly as typed!",
           timestamp: formatTime12h(),
         },
       ],

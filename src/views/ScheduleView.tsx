@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Sparkles,
   Bot,
+  FileText,
   X,
 } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
@@ -594,11 +595,19 @@ export const ScheduleView: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Notes */}
-                      {item.notes && (
-                        <p className="text-[11px] text-neutral-400 font-light mt-1 bg-neutral-950/60 p-2 rounded-lg border border-neutral-800/60">
-                          {item.notes}
-                        </p>
+                      {/* Agenda & Notes */}
+                      {(item.agenda || (item.notes && item.notes !== 'Scheduled via Chatbot')) && (
+                        <div className="text-[11px] text-neutral-300 font-light mt-1.5 bg-neutral-950/70 p-2 rounded-lg border border-neutral-800/60 flex items-start gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-purple-400 mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-mono uppercase tracking-wider text-purple-300 block font-semibold">
+                              Agenda / Notes
+                            </span>
+                            <p className="text-neutral-200 mt-0.5 leading-snug break-words">
+                              {item.agenda || item.notes}
+                            </p>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

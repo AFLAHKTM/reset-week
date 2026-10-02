@@ -13,6 +13,8 @@ import {
   X,
   RotateCcw,
   Check,
+  FileText,
+  Timer,
 } from 'lucide-react';
 
 export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
@@ -48,11 +50,11 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
   };
 
   const quickPrompts = [
-    `Meeting with Zack tomorrow at 11:30 AM on Google Meet`,
-    `Call Dr. Rashid on Sunday at 4:00 PM`,
-    `Home visit on Sunday at 7:00 PM`,
-    `Shopping with brother today at 5:30 PM`,
-    `Review El Grafico branding with Omar on Saturday at 3 PM at Office`,
+    `Meeting with Zack on tomorrow 11:30 AM at Google Meet duration 45 min for UI Design review`,
+    `Coffee with Hamdan on Sunday 4 PM @ Starbucks duration 1 hour for partnership discussion`,
+    `Doctor appointment on Monday 5:00 PM at City Clinic for eye checkup duration 30m`,
+    `Shopping on Saturday at Lulu Mall for weekly groceries duration 2 hours`,
+    `Aurad gathering on Friday 8 PM at Masjid for Surat Al Fath`,
   ];
 
   const getTypeBadge = (t: ScheduleItemType) => {
@@ -129,7 +131,22 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
                       {lastAutoScheduledItem.location}
                     </span>
                   )}
+                  {lastAutoScheduledItem.duration && (
+                    <span className="flex items-center gap-1 text-amber-300 font-mono">
+                      <Timer className="w-3 h-3 text-amber-400" />
+                      {lastAutoScheduledItem.duration}
+                    </span>
+                  )}
                 </div>
+                {(lastAutoScheduledItem.agenda || (lastAutoScheduledItem.notes && lastAutoScheduledItem.notes !== 'Scheduled via Chatbot')) && (
+                  <div className="mt-1 text-[11px] text-neutral-300 flex items-center gap-1.5">
+                    <FileText className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span className="truncate">
+                      <span className="text-neutral-400 font-medium">Agenda:</span>{' '}
+                      {lastAutoScheduledItem.agenda || lastAutoScheduledItem.notes}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -238,10 +255,32 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
                         </div>
                       </div>
 
-                      {msg.scheduleDetails.location && (
-                        <div className="mt-1 flex items-center gap-1 text-[11px] text-indigo-300 font-mono">
-                          <MapPin className="w-3 h-3 text-indigo-400 shrink-0" />
-                          <span className="truncate">{msg.scheduleDetails.location}</span>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+                        {msg.scheduleDetails.location && (
+                          <div className="flex items-center gap-1 text-indigo-300 font-mono">
+                            <MapPin className="w-3 h-3 text-indigo-400 shrink-0" />
+                            <span className="truncate">{msg.scheduleDetails.location}</span>
+                          </div>
+                        )}
+                        {msg.scheduleDetails.duration && (
+                          <div className="flex items-center gap-1 text-amber-300 font-mono">
+                            <Timer className="w-3 h-3 text-amber-400 shrink-0" />
+                            <span>{msg.scheduleDetails.duration}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {(msg.scheduleDetails.agenda || (msg.scheduleDetails.notes && msg.scheduleDetails.notes !== 'Scheduled via Chatbot')) && (
+                        <div className="mt-1.5 flex items-start gap-1.5 text-[11px] text-neutral-300 bg-neutral-900/80 p-2 rounded-lg border border-neutral-800/60">
+                          <FileText className="w-3 h-3 text-purple-400 mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-mono uppercase text-purple-300 block font-semibold">
+                              Agenda / Notes
+                            </span>
+                            <span className="break-words text-neutral-200">
+                              {msg.scheduleDetails.agenda || msg.scheduleDetails.notes}
+                            </span>
+                          </div>
                         </div>
                       )}
 
@@ -295,7 +334,7 @@ export const MessagesView: React.FC<{ embedded?: boolean }> = () => {
         >
           <input
             type="text"
-            placeholder="Type what to schedule (e.g. 'Meeting with Zack tomorrow at 11:30 AM')..."
+            placeholder="Type to schedule (e.g. 'Meeting with Zack on tomorrow 11:30 AM at Google Meet duration 45m for UI Review')..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             className="flex-1 bg-obsidian-900 border border-neutral-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500 transition-colors"

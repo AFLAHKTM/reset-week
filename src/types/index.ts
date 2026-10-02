@@ -92,6 +92,7 @@ export interface ScheduleItem {
   time: string; // e.g. "10:30 AM"
   duration?: string; // e.g. "45 min"
   location?: string; // e.g. "Office", "Google Meet"
+  agenda?: string; // from "for"
   notes?: string;
   completed: boolean;
   completedAt?: string;
@@ -112,6 +113,8 @@ export interface ChatMessage {
     time: string;
     duration?: string;
     location?: string;
+    agenda?: string;
+    notes?: string;
     type: ScheduleItemType;
   };
 }
@@ -134,6 +137,7 @@ export interface DetectedSchedule {
   time: string;
   duration?: string;
   location?: string;
+  agenda?: string;
   notes?: string;
 }
 

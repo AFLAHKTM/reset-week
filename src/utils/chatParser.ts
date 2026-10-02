@@ -1,9 +1,93 @@
 import type { ScheduleItemType, DetectedSchedule } from '../types';
 import { parseISODate, formatISODate } from './dateUtils';
 
+interface ClauseMatch {
+  key: 'on' | 'at' | 'duration' | 'for' | 'with';
+  startIndex: number;
+  contentStart: number;
+}
+
 /**
- * Intelligent parser that extracts schedule details from a message
- * while preserving the title EXACTLY as typed by the user.
+ * Normalizes duration string to standard format: "X min" or "X hour(s)"
+ */
+function normalizeDuration(raw: string): string {
+  const match = raw.match(/(\d+(?:\.\d+)?)\s*(min|mins|minute|minutes|hour|hours|hr|hrs|m|h)?/i);
+  if (!match) return '45 min';
+
+  const val = parseFloat(match[1]);
+  const unit = (match[2] || 'min').toLowerCase();
+
+  if (unit.startsWith('h')) {
+    return `${val} hour${val > 1 ? 's' : ''}`;
+  }
+  return `${val} min`;
+}
+
+/**
+ * Extracts and formats time from text (e.g. "11:30 AM", "4pm", "16:00", "5:30", "evening")
+ */
+function extractFormattedTime(text: string): string | null {
+  const lower = text.toLowerCase();
+
+  // 12-hour with AM/PM (e.g. "11:30 AM", "11:30am", "4pm", "4 PM")
+  const match12 = lower.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+  if (match12) {
+    const hours = parseInt(match12[1], 10);
+    const minutes = match12[2] ? match12[2] : '00';
+    const period = match12[3].toUpperCase();
+    return `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
+  }
+
+  // 24-hour (e.g. "14:30", "09:15")
+  const match24 = lower.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (match24) {
+    let h = parseInt(match24[1], 10);
+    const m = match24[2];
+    const period = h >= 12 ? 'PM' : 'AM';
+    if (h > 12) h -= 12;
+    if (h === 0) h = 12;
+    return `${String(h).padStart(2, '0')}:${m} ${period}`;
+  }
+
+  // Pure hour number (e.g. "on 4" or "at 5" or "11")
+  const matchHour = lower.match(/\b(\d{1,2})(?::(\d{2}))?\b/);
+  if (matchHour) {
+    const rawH = parseInt(matchHour[1], 10);
+    if (rawH >= 1 && rawH <= 24) {
+      const minutes = matchHour[2] || '00';
+      let h = rawH;
+      let period: 'AM' | 'PM' = 'AM';
+      if (h >= 13 && h <= 24) {
+        period = 'PM';
+        h -= 12;
+      } else if (h >= 1 && h <= 7) {
+        period = 'PM';
+      } else if (h >= 8 && h <= 11) {
+        period = 'AM';
+      } else if (h === 12) {
+        period = 'PM';
+      }
+      return `${String(h).padStart(2, '0')}:${minutes} ${period}`;
+    }
+  }
+
+  // Named periods
+  if (lower.includes('morning')) return '09:30 AM';
+  if (lower.includes('noon')) return '12:00 PM';
+  if (lower.includes('afternoon')) return '02:30 PM';
+  if (lower.includes('evening')) return '06:00 PM';
+  if (lower.includes('night')) return '08:30 PM';
+
+  return null;
+}
+
+/**
+ * Intelligent parser that extracts schedule details from a message:
+ * - Text follows "on": Added to time (& date)
+ * - Text follows "at" or "@": Added to location
+ * - "duration" / duration pattern: Added to duration
+ * - Text follows "for": Added to agenda and notes
+ * - Preserves the title EXACTLY as typed by the user.
  */
 export function detectScheduleFromText(
   text: string,
@@ -13,124 +97,164 @@ export function detectScheduleFromText(
   const cleanText = text.trim();
   const lower = cleanText.toLowerCase();
 
-  // 1. Extract Time
-  // Match patterns like "10:30 AM", "10:30am", "4pm", "4 PM", "at 4", "16:00"
+  // Find all clause markers
+  // Markers: "on", "at" / "@", "duration", "for", "with"
+  const markerRegex = /(?:\b(on|for|with)\s+)|(?:\b(duration)(?:\s*:|\s+is|\s+of)?\s+)|(?:\b(at)\s+|(@)\s*)/gi;
+  const matches: ClauseMatch[] = [];
+
+  let match: RegExpExecArray | null;
+  while ((match = markerRegex.exec(cleanText)) !== null) {
+    let key: ClauseMatch['key'] = 'on';
+    if (match[1]) {
+      const k = match[1].toLowerCase();
+      if (k === 'on') key = 'on';
+      else if (k === 'for') key = 'for';
+      else if (k === 'with') key = 'with';
+    } else if (match[2]) {
+      key = 'duration';
+    } else if (match[3] || match[4]) {
+      key = 'at';
+    }
+
+    matches.push({
+      key,
+      startIndex: match.index,
+      contentStart: match.index + match[0].length,
+    });
+  }
+
+  // Sort matches by appearance in string
+  matches.sort((a, b) => a.startIndex - b.startIndex);
+
+  // Extract slices for each matched clause
+  const clauses: Partial<Record<ClauseMatch['key'], string>> = {};
+  for (let i = 0; i < matches.length; i++) {
+    const cur = matches[i];
+    const nextStart = i + 1 < matches.length ? matches[i + 1].startIndex : cleanText.length;
+    const rawVal = cleanText.slice(cur.contentStart, nextStart).trim();
+    // Clean trailing punctuation
+    const cleanVal = rawVal.replace(/[,;.]\s*$/, '').trim();
+    clauses[cur.key] = cleanVal;
+  }
+
+  // 1. Text follows "on" -> Time (and Date if date keywords are present)
   let timeStr = '10:00 AM';
 
-  const timeRegex12 = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i;
-  const timeRegexAt = /\bat\s+(\d{1,2})(?::(\d{2}))?\b/i;
-  const timeRegex24 = /\b([01]?\d|2[0-3]):([0-5]\d)\b/;
-
-  const match12 = lower.match(timeRegex12);
-  if (match12) {
-    const hours = parseInt(match12[1], 10);
-    const minutes = match12[2] ? match12[2] : '00';
-    const period = match12[3].toUpperCase();
-    timeStr = `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
+  if (clauses.on) {
+    const parsedTime = extractFormattedTime(clauses.on);
+    if (parsedTime) {
+      timeStr = parsedTime;
+    }
   } else {
-    const matchAt = lower.match(timeRegexAt);
-    if (matchAt) {
-      let hours = parseInt(matchAt[1], 10);
-      const minutes = matchAt[2] ? matchAt[2] : '00';
-      const period = hours >= 1 && hours <= 7 ? 'PM' : 'AM';
-      timeStr = `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
-    } else {
-      const match24 = lower.match(timeRegex24);
-      if (match24) {
-        let h = parseInt(match24[1], 10);
-        const m = match24[2];
-        const period = h >= 12 ? 'PM' : 'AM';
-        if (h > 12) h -= 12;
-        if (h === 0) h = 12;
-        timeStr = `${String(h).padStart(2, '0')}:${m} ${period}`;
-      } else if (lower.includes('morning')) {
-        timeStr = '09:30 AM';
-      } else if (lower.includes('afternoon')) {
-        timeStr = '02:30 PM';
-      } else if (lower.includes('evening')) {
-        timeStr = '06:00 PM';
-      } else if (lower.includes('night')) {
-        timeStr = '08:30 PM';
-      }
+    // Fallback: check full text for time
+    const parsedTime = extractFormattedTime(cleanText);
+    if (parsedTime) {
+      timeStr = parsedTime;
     }
   }
 
-  // 2. Extract Date
+  // 2. Date Extraction (inspect "on" segment first, then full text)
   let targetDate = currentDate;
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const textToCheckForDate = (clauses.on ? clauses.on.toLowerCase() + ' ' : '') + lower;
 
-  if (lower.includes('tomorrow')) {
+  if (textToCheckForDate.includes('tomorrow')) {
     const curr = parseISODate(currentDate);
     curr.setDate(curr.getDate() + 1);
     targetDate = formatISODate(curr);
-  } else if (lower.includes('today')) {
+  } else if (textToCheckForDate.includes('today')) {
     targetDate = currentDate;
   } else {
-    // Check for day of the week in weekDayKeys
-    let foundDayKey: string | null = null;
     for (const dKey of weekDayKeys) {
       const dObj = parseISODate(dKey);
       const dName = dayNames[dObj.getDay()];
-      if (lower.includes(dName)) {
-        foundDayKey = dKey;
+      if (textToCheckForDate.includes(dName)) {
+        targetDate = dKey;
         break;
       }
     }
-
-    if (foundDayKey) {
-      targetDate = foundDayKey;
-    }
   }
 
-  // 3. Extract Duration
-  let durationStr = '45 min';
-  const durationMatch = lower.match(/\b(\d+)\s*(min|mins|minute|minutes|hour|hours|hr|hrs|m)\b/i);
-  if (durationMatch) {
-    const val = parseInt(durationMatch[1], 10);
-    const unit = durationMatch[2].toLowerCase();
-    if (unit.startsWith('h')) {
-      durationStr = `${val} hour${val > 1 ? 's' : ''}`;
+  // 3. Text follows "at" or "@" -> Location
+  let locationStr: string | undefined = undefined;
+  if (clauses.at) {
+    // If the text after "at" was a pure time (e.g. "at 10 AM") and "on" was NOT provided:
+    const isPureTime = /^\d{1,2}(?::\d{2})?\s*(am|pm)?$/i.test(clauses.at);
+    if (isPureTime && !clauses.on) {
+      const parsedTime = extractFormattedTime(clauses.at);
+      if (parsedTime) timeStr = parsedTime;
     } else {
-      durationStr = `${val} min`;
+      locationStr = clauses.at;
     }
   }
 
-  // 4. Determine Type
+  // Fallback location detection if "at" or "@" was not used
+  if (!locationStr) {
+    if (lower.includes('google meet')) locationStr = 'Google Meet';
+    else if (lower.includes('zoom')) locationStr = 'Zoom';
+    else if (lower.includes('office') || lower.includes('studio')) locationStr = 'Office';
+    else if (lower.includes('home') || lower.includes('house')) locationStr = 'Home';
+    else if (lower.includes('cafe') || lower.includes('coffee')) locationStr = 'Cafe';
+    else if (lower.includes('phone') || lower.includes('call')) locationStr = 'Phone Call';
+  }
+
+  // 4. "duration" -> Duration
+  let durationStr = '45 min';
+  if (clauses.duration) {
+    durationStr = normalizeDuration(clauses.duration);
+  } else {
+    // Standalone duration in text (e.g. "30 mins", "1 hour", "45m")
+    const matchDur = lower.match(/\b(\d+(?:\.\d+)?)\s*(min|mins|minute|minutes|hour|hours|hr|hrs|m)\b/i);
+    if (matchDur) {
+      durationStr = normalizeDuration(matchDur[0]);
+    }
+  }
+
+  // 5. Text follows "for" -> Agenda and Notes
+  let agendaAndNotes: string | undefined = undefined;
+  if (clauses.for) {
+    agendaAndNotes = clauses.for;
+  }
+
+  // 6. Person extraction (from "with" clause or regex)
+  let personStr: string | undefined = undefined;
+  if (clauses.with) {
+    personStr = clauses.with;
+  } else {
+    const personMatch = cleanText.match(/\b(?:with|call|meet|sync with)\s+([A-Z][a-zA-Z0-9_.-]+)/);
+    if (personMatch && personMatch[1]) {
+      personStr = personMatch[1];
+    }
+  }
+
+  // 7. Determine Type
   let type: ScheduleItemType = 'meeting';
   if (lower.includes('visit') || lower.includes('home') || lower.includes('family')) {
     type = 'visit';
-  } else if (lower.includes('program') || lower.includes('event') || lower.includes('masjid') || lower.includes('aurad') || lower.includes('haddad')) {
+  } else if (
+    lower.includes('program') ||
+    lower.includes('event') ||
+    lower.includes('masjid') ||
+    lower.includes('aurad') ||
+    lower.includes('haddad') ||
+    lower.includes('yaseen') ||
+    lower.includes('fath')
+  ) {
     type = 'program';
-  } else if (lower.includes('routine') || lower.includes('reminder') || lower.includes('shopping') || lower.includes('task')) {
+  } else if (
+    lower.includes('shopping') ||
+    lower.includes('groceries') ||
+    lower.includes('routine') ||
+    lower.includes('reminder') ||
+    lower.includes('task') ||
+    lower.includes('errand')
+  ) {
     type = 'schedule';
   } else {
     type = 'meeting';
   }
 
-  // 5. Extract Location or Platform
-  let locationStr = '';
-  if (lower.includes('google meet')) {
-    locationStr = 'Google Meet';
-  } else if (lower.includes('zoom')) {
-    locationStr = 'Zoom';
-  } else if (lower.includes('office') || lower.includes('studio')) {
-    locationStr = 'Office';
-  } else if (lower.includes('home') || lower.includes('house')) {
-    locationStr = 'Home';
-  } else if (lower.includes('cafe') || lower.includes('coffee')) {
-    locationStr = 'Cafe';
-  } else if (lower.includes('phone') || lower.includes('call')) {
-    locationStr = 'Phone Call';
-  }
-
-  // 6. Extract Person if mentioned (e.g. "with Zack", "call Zack", "meet Omar")
-  let personStr: string | undefined = undefined;
-  const personMatch = cleanText.match(/\b(?:with|call|meet|sync with)\s+([A-Z][a-zA-Z0-9_.-]+)/);
-  if (personMatch && personMatch[1]) {
-    personStr = personMatch[1];
-  }
-
-  // Title: SCHEDULED EXACTLY AS TYPED!
+  // Return detected schedule: title scheduled EXACTLY AS TYPED
   return {
     title: cleanText,
     person: personStr,
@@ -139,6 +263,7 @@ export function detectScheduleFromText(
     time: timeStr,
     duration: durationStr,
     location: locationStr || undefined,
-    notes: 'Scheduled via Chatbot',
+    agenda: agendaAndNotes,
+    notes: agendaAndNotes || 'Scheduled via Chatbot',
   };
 }
