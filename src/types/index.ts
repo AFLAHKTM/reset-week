@@ -101,8 +101,8 @@ export interface ScheduleItem {
 
 export interface ChatMessage {
   id: string;
-  contactId: string;
-  sender: 'user' | 'contact' | 'assistant';
+  contactId?: string;
+  sender: 'user' | 'assistant' | 'contact';
   text: string;
   timestamp: string; // e.g. "10:15 AM"
   autoScheduleId?: string;

@@ -214,8 +214,9 @@ export function createNewResetWeek(weekNumber: number, startDateInput?: Date): R
 export function getInitialSeedData(): {
   currentWeek: ResetWeekCycle;
   history: ResetWeekCycle[];
-  contacts: ChatContact[];
-  chatThreads: Record<string, ChatMessage[]>;
+  chatMessages: ChatMessage[];
+  contacts?: ChatContact[];
+  chatThreads?: Record<string, ChatMessage[]>;
 } {
   const currentWeek = createNewResetWeek(3);
 
@@ -511,10 +512,44 @@ export function getInitialSeedData(): {
     },
   ];
 
+  const chatMessages = createInitialChatMessages(Object.keys(currentWeek.days));
   const contacts = createInitialContacts();
   const chatThreads = createInitialChatThreads(Object.keys(currentWeek.days));
 
-  return { currentWeek, history, contacts, chatThreads };
+  return { currentWeek, history, chatMessages, contacts, chatThreads };
+}
+
+export function createInitialChatMessages(weekDates: string[] = []): ChatMessage[] {
+  const d2 = weekDates[1] || '2026-10-03';
+  return [
+    {
+      id: 'msg-init-1',
+      sender: 'assistant',
+      text: "Salam! I am your Schedule Chatbot.\n\nType anything you want scheduled (e.g. \"Meeting with Zack tomorrow at 11:30 AM on Google Meet\" or \"Home visit on Sunday at 7:00 PM\") and I will add it to your schedule exactly as typed!",
+      timestamp: '09:00 AM',
+    },
+    {
+      id: 'msg-init-2',
+      sender: 'user',
+      text: 'Meeting with Zack tomorrow at 11:30 AM on Google Meet',
+      timestamp: '09:15 AM',
+      autoScheduleId: 'sch-1',
+      scheduleDetails: {
+        title: 'Meeting with Zack tomorrow at 11:30 AM on Google Meet',
+        date: d2,
+        time: '11:30 AM',
+        duration: '45 min',
+        location: 'Google Meet',
+        type: 'meeting',
+      },
+    },
+    {
+      id: 'msg-init-3',
+      sender: 'assistant',
+      text: `✅ Scheduled exactly as typed!\n\n📅 "Meeting with Zack tomorrow at 11:30 AM on Google Meet"\n🗓️ ${d2} at 11:30 AM (Google Meet)`,
+      timestamp: '09:15 AM',
+    },
+  ];
 }
 
 export function createInitialContacts(): ChatContact[] {

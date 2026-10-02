@@ -18,7 +18,7 @@ import type {
   ScheduleSubTab,
 } from '../types';
 import { formatISODate, formatTime12h } from '../utils/dateUtils';
-import { getInitialSeedData, createNewResetWeek, createInitialOutcomes, createInitialContacts, createInitialChatThreads } from '../utils/seedData';
+import { getInitialSeedData, createNewResetWeek, createInitialOutcomes, createInitialChatMessages, createInitialContacts, createInitialChatThreads } from '../utils/seedData';
 import { detectScheduleFromText } from '../utils/chatParser';
 import confetti from 'canvas-confetti';
 
@@ -30,6 +30,13 @@ interface ResetWeekContextType {
   activeTab: TabType;
   isQuickAddOpen: boolean;
   inspectingArchivedWeek: ResetWeekCycle | null;
+  setSelectedDate: (date: string) => void;
+  setActiveTab: (tab: TabType) => void;
+  setTheme: (theme: 'dark' | 'light') => void;
+  toggleTheme: () => void;
+  setIsQuickAddOpen: (isOpen: boolean) => void;
+  setInspectingArchivedWeek: (cycle: ResetWeekCycle | null) => void;
+  setScheduleSubTab: (subTab: ScheduleSubTab) => void;
 
   // Selected Day and Today
   currentDayData: DayData;
@@ -94,25 +101,20 @@ interface ResetWeekContextType {
   };
   calculatedWeekScore: WeekScore;
 
-  // Chat & Auto-Scheduling System
+  // Single Chatbot & Auto-Scheduling System
   scheduleSubTab: ScheduleSubTab;
+  chatMessages: ChatMessage[];
+  lastAutoScheduledItem: ScheduleItem | null;
+  sendChatMessage: (text: string) => void;
+  clearChat: () => void;
+  // Compatibility fields
   contacts: ChatContact[];
   chatThreads: Record<string, ChatMessage[]>;
   activeContactId: string;
   activeContact?: ChatContact;
   activeChatMessages: ChatMessage[];
-  lastAutoScheduledItem: ScheduleItem | null;
-
-  // Actions
-  setSelectedDate: (date: string) => void;
-  setActiveTab: (tab: TabType) => void;
-  setScheduleSubTab: (tab: ScheduleSubTab) => void;
-  setTheme: (theme: 'dark' | 'light') => void;
-  toggleTheme: () => void;
-  setIsQuickAddOpen: (open: boolean) => void;
-  setInspectingArchivedWeek: (week: ResetWeekCycle | null) => void;
   setActiveContactId: (id: string) => void;
-  sendMessage: (contactId: string, text: string) => void;
+  sendMessage: (contactIdOrText: string, text?: string) => void;
   addContact: (name: string, role: string) => void;
   deleteMessage: (contactId: string, messageId: string) => void;
   clearLastAutoScheduledItem: () => void;
@@ -157,8 +159,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [state, setState] = useState<{
     currentWeek: ResetWeekCycle;
     history: ResetWeekCycle[];
-    contacts: ChatContact[];
-    chatThreads: Record<string, ChatMessage[]>;
+    chatMessages: ChatMessage[];
+    contacts?: ChatContact[];
+    chatThreads?: Record<string, ChatMessage[]>;
   }>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -175,6 +178,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (!parsed.currentWeek.outcomes.aurad) {
               parsed.currentWeek.outcomes.aurad = initialOutcomes.aurad;
             }
+          }
+          if (!parsed.chatMessages || !Array.isArray(parsed.chatMessages)) {
+            parsed.chatMessages = createInitialChatMessages(Object.keys(parsed.currentWeek.days));
           }
           if (!parsed.contacts || !Array.isArray(parsed.contacts)) {
             parsed.contacts = createInitialContacts();
@@ -1158,195 +1164,128 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
-  const sendMessage = (contactId: string, text: string) => {
+  const sendChatMessage = (text: string) => {
     if (!text.trim()) return;
 
     const userMsgId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const timeNow = formatTime12h();
-    const contact = (state.contacts || []).find((c) => c.id === contactId);
-    const contactName = contact ? contact.name : 'Contact';
-    const isAssistant = !!contact?.isAssistant;
+    const cleanText = text.trim();
 
-    // Run the smart schedule detection parser
+    // Schedule EXACTLY as typed!
     const dayKeysList = Object.keys(state.currentWeek.days);
-    const detected = detectScheduleFromText(text, contactName, selectedDate, dayKeysList);
+    const detected = detectScheduleFromText(cleanText, selectedDate, dayKeysList);
 
-    let newScheduleId: string | undefined = undefined;
-    let createdScheduleItem: ScheduleItem | null = null;
-
-    if (detected) {
-      newScheduleId = `sch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-      createdScheduleItem = {
-        ...detected,
-        id: newScheduleId,
-        completed: false,
-        sourceChatId: contactId,
-        sourceMessageId: userMsgId,
-      };
-    }
+    const newScheduleId = `sch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const createdScheduleItem: ScheduleItem = {
+      ...detected,
+      id: newScheduleId,
+      completed: false,
+      sourceChatId: 'chatbot',
+      sourceMessageId: userMsgId,
+    };
 
     const userMessage: ChatMessage = {
       id: userMsgId,
-      contactId,
       sender: 'user',
-      text: text.trim(),
+      text: cleanText,
       timestamp: timeNow,
       autoScheduleId: newScheduleId,
-      scheduleDetails: detected
-        ? {
-            title: detected.title,
-            date: detected.date,
-            time: detected.time,
-            duration: detected.duration,
-            location: detected.location,
-            type: detected.type,
-          }
-        : undefined,
+      scheduleDetails: {
+        title: detected.title,
+        date: detected.date,
+        time: detected.time,
+        duration: detected.duration,
+        location: detected.location,
+        type: detected.type,
+      },
     };
 
-    // Update state
+    // Update state with new message and target day schedule
     setState((prev) => {
-      const updatedThreads = {
-        ...prev.chatThreads,
-        [contactId]: [...(prev.chatThreads[contactId] || []), userMessage],
-      };
-
+      const updatedMessages = [...(prev.chatMessages || []), userMessage];
+      const targetDate = createdScheduleItem.date;
+      const targetDay = prev.currentWeek.days[targetDate];
       let updatedWeek = prev.currentWeek;
-      if (createdScheduleItem) {
-        const targetDate = createdScheduleItem.date;
-        const targetDay = prev.currentWeek.days[targetDate];
-        if (targetDay) {
-          const existingSchedules = targetDay.schedules || [];
-          updatedWeek = {
-            ...prev.currentWeek,
-            days: {
-              ...prev.currentWeek.days,
-              [targetDate]: {
-                ...targetDay,
-                schedules: [...existingSchedules, createdScheduleItem],
-              },
+
+      if (targetDay) {
+        const existingSchedules = targetDay.schedules || [];
+        updatedWeek = {
+          ...prev.currentWeek,
+          days: {
+            ...prev.currentWeek.days,
+            [targetDate]: {
+              ...targetDay,
+              schedules: [...existingSchedules, createdScheduleItem],
             },
-          };
-        }
+          },
+        };
       }
 
       return {
         ...prev,
-        chatThreads: updatedThreads,
+        chatMessages: updatedMessages,
         currentWeek: updatedWeek,
       };
     });
 
-    if (createdScheduleItem) {
-      setLastAutoScheduledItem(createdScheduleItem);
-      try {
-        confetti({
-          particleCount: 35,
-          spread: 50,
-          origin: { y: 0.8 },
-        });
-      } catch {
-        // ignore
-      }
+    setLastAutoScheduledItem(createdScheduleItem);
+    try {
+      confetti({
+        particleCount: 35,
+        spread: 50,
+        origin: { y: 0.8 },
+      });
+    } catch {
+      // ignore
     }
 
-    // Auto-reply simulation
+    // Assistant response
     setTimeout(() => {
       const replyTime = formatTime12h();
       const replyId = `msg-reply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-      let replyText = '';
-
-      if (isAssistant) {
-        if (detected) {
-          replyText = `✅ Done! I've automatically added this to your schedule:\n\n📅 ${detected.title}\n🗓️ ${detected.date} at ${detected.time}${detected.location ? ` (${detected.location})` : ''}\n\nIt is now live in your Schedule tab and agenda!`;
-        } else {
-          replyText = `I hear you! Whenever you want to schedule an appointment, call, meeting, or visit, just write it in natural language (e.g. "Meeting with Omar tomorrow at 4 PM" or "Home visit on Sunday at 7 PM") and I will schedule it automatically!`;
-        }
-      } else {
-        if (detected) {
-          const replies = [
-            `Sounds great! Let's do that. Added to my calendar too.`,
-            `Perfect! See you then at ${detected.time}.`,
-            `Confirmed! Looking forward to connecting.`,
-          ];
-          replyText = replies[Math.floor(Math.random() * replies.length)];
-        } else {
-          const casualReplies = [
-            `Got it! Let me know if you want to lock in a time to connect.`,
-            `Noted! Keep me posted when you are free.`,
-            `Sounds good brother!`,
-          ];
-          replyText = casualReplies[Math.floor(Math.random() * casualReplies.length)];
-        }
-      }
+      const replyText = `✅ Scheduled exactly as typed!\n\n📅 "${detected.title}"\n🗓️ ${detected.date} at ${detected.time}${detected.location ? ` (${detected.location})` : ''}\n\nAdded to your Agenda.`;
 
       const replyMessage: ChatMessage = {
         id: replyId,
-        contactId,
-        sender: isAssistant ? 'assistant' : 'contact',
+        sender: 'assistant',
         text: replyText,
         timestamp: replyTime,
       };
 
       setState((prev) => ({
         ...prev,
-        chatThreads: {
-          ...prev.chatThreads,
-          [contactId]: [...(prev.chatThreads[contactId] || []), replyMessage],
-        },
+        chatMessages: [...(prev.chatMessages || []), replyMessage],
       }));
-    }, 650);
+    }, 450);
   };
 
-  const addContact = (name: string, role: string) => {
-    if (!name.trim()) return;
-    const colors = [
-      'bg-emerald-600',
-      'bg-indigo-600',
-      'bg-amber-600',
-      'bg-rose-600',
-      'bg-purple-600',
-      'bg-teal-600',
-      'bg-blue-600',
-    ];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const newContactId = `contact-${Date.now()}`;
-    const newContact: ChatContact = {
-      id: newContactId,
-      name: name.trim(),
-      role: role.trim() || 'General',
-      avatarColor: randomColor,
-      lastSeen: 'Active now',
-      unreadCount: 0,
-    };
-
+  const clearChat = () => {
     setState((prev) => ({
       ...prev,
-      contacts: [...(prev.contacts || []), newContact],
-      chatThreads: {
-        ...prev.chatThreads,
-        [newContactId]: [
-          {
-            id: `msg-welcome-${Date.now()}`,
-            contactId: newContactId,
-            sender: 'contact',
-            text: `Salam! Glad to connect with you on RESET WEEK.`,
-            timestamp: formatTime12h(),
-          },
-        ],
-      },
+      chatMessages: [
+        {
+          id: `msg-welcome-${Date.now()}`,
+          sender: 'assistant',
+          text: "Chat cleared! Type anything you want scheduled (e.g. \"Meeting with Zack tomorrow at 11:30 AM on Google Meet\" or \"Home visit on Sunday at 7:00 PM\") and I will add it to your schedule exactly as typed.",
+          timestamp: formatTime12h(),
+        },
+      ],
     }));
-
-    setActiveContactId(newContactId);
   };
 
-  const deleteMessage = (contactId: string, messageId: string) => {
+  const sendMessage = (contactIdOrText: string, textOrNothing?: string) => {
+    const textToSend = textOrNothing !== undefined ? textOrNothing : contactIdOrText;
+    sendChatMessage(textToSend);
+  };
+
+  const addContact = (_name: string, _role: string) => {
+    // Single chatbot active - no separate contacts required
+  };
+
+  const deleteMessage = (_contactId: string, messageId: string) => {
     setState((prev) => ({
       ...prev,
-      chatThreads: {
-        ...prev.chatThreads,
-        [contactId]: (prev.chatThreads[contactId] || []).filter((m) => m.id !== messageId),
-      },
+      chatMessages: (prev.chatMessages || []).filter((m) => m.id !== messageId),
     }));
   };
 
@@ -1430,6 +1369,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const parsed = JSON.parse(data);
       if (parsed.currentWeek && Array.isArray(parsed.history)) {
+        if (!parsed.chatMessages) parsed.chatMessages = createInitialChatMessages(Object.keys(parsed.currentWeek.days));
         if (!parsed.contacts) parsed.contacts = createInitialContacts();
         if (!parsed.chatThreads) parsed.chatThreads = createInitialChatThreads(Object.keys(parsed.currentWeek.days));
         setState(parsed);
@@ -1483,6 +1423,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         scheduleSubTab,
         setScheduleSubTab,
+        chatMessages: state.chatMessages || [],
+        sendChatMessage,
+        clearChat,
         contacts: state.contacts || [],
         chatThreads: state.chatThreads || {},
         activeContactId,

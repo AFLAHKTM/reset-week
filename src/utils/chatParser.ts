@@ -2,54 +2,20 @@ import type { ScheduleItemType, DetectedSchedule } from '../types';
 import { parseISODate, formatISODate } from './dateUtils';
 
 /**
- * Intelligent regex and heuristic parser that inspects a chat message
- * and detects scheduling intents, dates, times, durations, and locations.
+ * Intelligent parser that extracts schedule details from a message
+ * while preserving the title EXACTLY as typed by the user.
  */
 export function detectScheduleFromText(
   text: string,
-  contactName: string,
   currentDate: string,
   weekDayKeys: string[] = []
-): DetectedSchedule | null {
-  const lower = text.toLowerCase();
+): DetectedSchedule {
+  const cleanText = text.trim();
+  const lower = cleanText.toLowerCase();
 
-  // 1. Check for schedule or meeting intent triggers
-  const intentKeywords = [
-    'meet',
-    'meeting',
-    'call',
-    'schedule',
-    'scheduled',
-    'sync',
-    'catch up',
-    'appointment',
-    'session',
-    'visit',
-    'program',
-    'zoom',
-    'google meet',
-    'discussion',
-    'review',
-    'connect',
-    'at ',
-    'tomorrow',
-    'today',
-    'friday',
-    'saturday',
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-  ];
-
-  const hasIntent = intentKeywords.some((kw) => lower.includes(kw));
-  if (!hasIntent) return null;
-
-  // 2. Extract Time
+  // 1. Extract Time
   // Match patterns like "10:30 AM", "10:30am", "4pm", "4 PM", "at 4", "16:00"
-  let timeStr = '10:00 AM'; // default fallback
-  let foundTime = false;
+  let timeStr = '10:00 AM';
 
   const timeRegex12 = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i;
   const timeRegexAt = /\bat\s+(\d{1,2})(?::(\d{2}))?\b/i;
@@ -61,16 +27,13 @@ export function detectScheduleFromText(
     const minutes = match12[2] ? match12[2] : '00';
     const period = match12[3].toUpperCase();
     timeStr = `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
-    foundTime = true;
   } else {
     const matchAt = lower.match(timeRegexAt);
     if (matchAt) {
       let hours = parseInt(matchAt[1], 10);
       const minutes = matchAt[2] ? matchAt[2] : '00';
-      // Infer AM/PM based on common business hours (e.g. 1 to 7 is usually PM, 8 to 11 is AM)
       const period = hours >= 1 && hours <= 7 ? 'PM' : 'AM';
       timeStr = `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
-      foundTime = true;
     } else {
       const match24 = lower.match(timeRegex24);
       if (match24) {
@@ -80,24 +43,19 @@ export function detectScheduleFromText(
         if (h > 12) h -= 12;
         if (h === 0) h = 12;
         timeStr = `${String(h).padStart(2, '0')}:${m} ${period}`;
-        foundTime = true;
       } else if (lower.includes('morning')) {
         timeStr = '09:30 AM';
-        foundTime = true;
       } else if (lower.includes('afternoon')) {
         timeStr = '02:30 PM';
-        foundTime = true;
       } else if (lower.includes('evening')) {
         timeStr = '06:00 PM';
-        foundTime = true;
       } else if (lower.includes('night')) {
         timeStr = '08:30 PM';
-        foundTime = true;
       }
     }
   }
 
-  // 3. Extract Date
+  // 2. Extract Date
   let targetDate = currentDate;
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -124,7 +82,7 @@ export function detectScheduleFromText(
     }
   }
 
-  // 4. Extract Duration
+  // 3. Extract Duration
   let durationStr = '45 min';
   const durationMatch = lower.match(/\b(\d+)\s*(min|mins|minute|minutes|hour|hours|hr|hrs|m)\b/i);
   if (durationMatch) {
@@ -137,19 +95,19 @@ export function detectScheduleFromText(
     }
   }
 
-  // 5. Determine Type
+  // 4. Determine Type
   let type: ScheduleItemType = 'meeting';
   if (lower.includes('visit') || lower.includes('home') || lower.includes('family')) {
     type = 'visit';
   } else if (lower.includes('program') || lower.includes('event') || lower.includes('masjid') || lower.includes('aurad') || lower.includes('haddad')) {
     type = 'program';
-  } else if (lower.includes('schedule') || lower.includes('routine') || lower.includes('reminder')) {
+  } else if (lower.includes('routine') || lower.includes('reminder') || lower.includes('shopping') || lower.includes('task')) {
     type = 'schedule';
   } else {
     type = 'meeting';
   }
 
-  // 6. Extract Location or Platform
+  // 5. Extract Location or Platform
   let locationStr = '';
   if (lower.includes('google meet')) {
     locationStr = 'Google Meet';
@@ -165,48 +123,22 @@ export function detectScheduleFromText(
     locationStr = 'Phone Call';
   }
 
-  // 7. Extract Title / Topic
-  let titleStr = '';
-  const forMatch = text.match(/\b(?:for|about|discussing|regarding|to discuss)\s+([a-zA-Z0-9\s,&'-]{3,35})/i);
-  if (forMatch && forMatch[1]) {
-    const topic = forMatch[1].trim().replace(/\s+(at|on|tomorrow|today|with|in)\b.*$/i, '');
-    if (topic.length > 2) {
-      if (type === 'visit') {
-        titleStr = `Home Visit (${topic})`;
-      } else if (type === 'program') {
-        titleStr = `${topic} Program`;
-      } else {
-        titleStr = `${topic} Sync`;
-      }
-    }
+  // 6. Extract Person if mentioned (e.g. "with Zack", "call Zack", "meet Omar")
+  let personStr: string | undefined = undefined;
+  const personMatch = cleanText.match(/\b(?:with|call|meet|sync with)\s+([A-Z][a-zA-Z0-9_.-]+)/);
+  if (personMatch && personMatch[1]) {
+    personStr = personMatch[1];
   }
 
-  if (!titleStr) {
-    if (type === 'visit') {
-      titleStr = `Home Visit with ${contactName}`;
-    } else if (type === 'program') {
-      titleStr = `Program with ${contactName}`;
-    } else {
-      titleStr = `Meeting with ${contactName}`;
-    }
-  }
-
-  // If there was no time found and the text doesn't explicitly look like a scheduling commitment, ignore
-  const explicitCommitmentWords = ['let\'s meet', 'lets meet', 'schedule', 'scheduled', 'catch up', 'call at', 'meet at', 'call tomorrow', 'meet tomorrow', 'sync at'];
-  const hasExplicitCommitment = explicitCommitmentWords.some(w => lower.includes(w));
-
-  if (!foundTime && !hasExplicitCommitment) {
-    return null;
-  }
-
+  // Title: SCHEDULED EXACTLY AS TYPED!
   return {
-    title: titleStr,
-    person: contactName.includes('Assistant') ? undefined : contactName,
+    title: cleanText,
+    person: personStr,
     type,
     date: targetDate,
     time: timeStr,
     duration: durationStr,
     location: locationStr || undefined,
-    notes: `Automatically scheduled from chat with ${contactName}`,
+    notes: 'Scheduled via Chatbot',
   };
 }

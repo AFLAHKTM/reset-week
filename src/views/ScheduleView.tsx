@@ -12,6 +12,7 @@ import {
   CalendarClock,
   MessageSquare,
   Sparkles,
+  Bot,
   X,
 } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
@@ -152,8 +153,8 @@ export const ScheduleView: React.FC = () => {
               : 'text-neutral-400 hover:text-neutral-200'
           }`}
         >
-          <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Chat & Auto-Schedule</span>
+          <Bot className="w-3.5 h-3.5 text-purple-400" />
+          <span>Schedule Chatbot</span>
           <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono flex items-center gap-1">
             <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
             Auto
@@ -189,19 +190,19 @@ export const ScheduleView: React.FC = () => {
         </div>
       </div>
 
-      {/* Smart Messaging Auto-Schedule Banner */}
+      {/* Schedule Chatbot Banner */}
       <div className="p-3 bg-gradient-to-r from-emerald-950/40 via-obsidian-900 to-indigo-950/30 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 shrink-0">
-            <MessageSquare className="w-4 h-4" />
+          <div className="p-2 bg-purple-500/10 border border-purple-500/30 rounded-lg text-purple-400 shrink-0">
+            <Bot className="w-4 h-4" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-white truncate">Auto-Schedule from Chats</span>
-              <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono shrink-0">Active</span>
+              <span className="text-xs font-bold text-white truncate">Schedule Chatbot</span>
+              <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono shrink-0">Exact Type</span>
             </div>
             <p className="text-[11px] text-neutral-400 mt-0.5 truncate">
-              Chat with contacts or AI assistant — commitments are automatically added here.
+              Type any plan or meeting — it will be scheduled exactly as typed.
             </p>
           </div>
         </div>
@@ -210,7 +211,7 @@ export const ScheduleView: React.FC = () => {
           onClick={() => setScheduleSubTab('chat')}
           className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold shrink-0 border border-neutral-700/80 flex items-center gap-1 active:scale-95 transition-all"
         >
-          <span>Open Chat</span>
+          <span>Open Chatbot</span>
           <Sparkles className="w-3 h-3 text-emerald-400" />
         </button>
       </div>
