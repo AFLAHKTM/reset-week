@@ -5,7 +5,6 @@ import {
   Compass,
   CheckSquare,
   CalendarClock,
-  MessageSquare,
   BookOpen,
   CircleDollarSign,
   Award,
@@ -19,7 +18,6 @@ export const Navigation: React.FC = () => {
     { id: 'home', label: 'Home', icon: Compass },
     { id: 'week', label: 'Week', icon: CheckSquare },
     { id: 'schedule', label: 'Schedule', icon: CalendarClock },
-    { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'learn', label: 'Learn', icon: BookOpen },
     { id: 'finance', label: 'Finance', icon: CircleDollarSign },
     { id: 'review', label: 'Review', icon: Award },
@@ -39,7 +37,7 @@ export const Navigation: React.FC = () => {
 
       {/* Mobile-First Bottom Dock Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-neutral-950/90 dark:bg-obsidian-950/95 backdrop-blur-xl border-t border-neutral-800/80 transition-colors">
-        <div className="max-w-md mx-auto px-1 sm:px-2 flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="max-w-md mx-auto px-2 flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom,0px)]">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -47,17 +45,17 @@ export const Navigation: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex flex-col items-center justify-center flex-1 py-1 transition-all relative active:scale-95 ${
+                className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all relative active:scale-95 ${
                   isActive
                     ? 'text-white dark:text-neutral-100 font-semibold'
                     : 'text-neutral-500 hover:text-neutral-300 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 {isActive && (
-                  <span className="absolute -top-1 w-6 sm:w-8 h-0.5 bg-emerald-500 rounded-full animate-in fade-in duration-200" />
+                  <span className="absolute -top-1 w-8 h-0.5 bg-emerald-500 rounded-full animate-in fade-in duration-200" />
                 )}
-                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-0.5 sm:mb-1 ${isActive ? 'stroke-[2.3]' : 'stroke-[1.8]'}`} />
-                <span className="text-[9px] sm:text-[10px] tracking-tight">{item.label}</span>
+                <Icon className={`w-5 h-5 mb-1 ${isActive ? 'stroke-[2.3]' : 'stroke-[1.8]'}`} />
+                <span className="text-[10px] sm:text-[11px] tracking-tight">{item.label}</span>
               </button>
             );
           })}

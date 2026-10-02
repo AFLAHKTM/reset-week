@@ -243,4 +243,5 @@ export interface ResetWeekCycle {
   archivedAt?: string;
 }
 
-export type TabType = 'home' | 'week' | 'schedule' | 'chat' | 'learn' | 'finance' | 'review';
+export type TabType = 'home' | 'week' | 'schedule' | 'learn' | 'finance' | 'review';
+export type ScheduleSubTab = 'agenda' | 'chat';

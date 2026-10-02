@@ -15,6 +15,7 @@ import type {
   ScheduleItem,
   ChatContact,
   ChatMessage,
+  ScheduleSubTab,
 } from '../types';
 import { formatISODate, formatTime12h } from '../utils/dateUtils';
 import { getInitialSeedData, createNewResetWeek, createInitialOutcomes, createInitialContacts, createInitialChatThreads } from '../utils/seedData';
@@ -94,6 +95,7 @@ interface ResetWeekContextType {
   calculatedWeekScore: WeekScore;
 
   // Chat & Auto-Scheduling System
+  scheduleSubTab: ScheduleSubTab;
   contacts: ChatContact[];
   chatThreads: Record<string, ChatMessage[]>;
   activeContactId: string;
@@ -104,6 +106,7 @@ interface ResetWeekContextType {
   // Actions
   setSelectedDate: (date: string) => void;
   setActiveTab: (tab: TabType) => void;
+  setScheduleSubTab: (tab: ScheduleSubTab) => void;
   setTheme: (theme: 'dark' | 'light') => void;
   toggleTheme: () => void;
   setIsQuickAddOpen: (open: boolean) => void;
@@ -188,6 +191,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return getInitialSeedData();
   });
 
+  const [scheduleSubTab, setScheduleSubTab] = useState<ScheduleSubTab>('agenda');
   const [activeContactId, setActiveContactId] = useState<string>('contact-zack');
   const [lastAutoScheduledItem, setLastAutoScheduledItem] = useState<ScheduleItem | null>(null);
 
@@ -1477,6 +1481,8 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         schedulesSummary,
         calculatedWeekScore,
 
+        scheduleSubTab,
+        setScheduleSubTab,
         contacts: state.contacts || [],
         chatThreads: state.chatThreads || {},
         activeContactId,

@@ -15,13 +15,15 @@ import {
   X,
 } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
+import { MessagesView } from './MessagesView';
 
 export const ScheduleView: React.FC = () => {
   const {
     currentWeek,
     selectedDate,
     setSelectedDate,
-    setActiveTab,
+    scheduleSubTab,
+    setScheduleSubTab,
     todayDate,
     dayKeys,
     todaySchedules,
@@ -106,24 +108,64 @@ export const ScheduleView: React.FC = () => {
             MEETINGS & SCHEDULES
           </h2>
           <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5">
-            Synchronize client calls, home visits, programs & deep sessions
+            Synchronize client calls, home visits, programs & auto-scheduled chats
           </p>
         </div>
 
+        {scheduleSubTab === 'agenda' && (
+          <button
+            onClick={() => setIsAdding(!isAdding)}
+            className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ${
+              isAdding
+                ? 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+            }`}
+          >
+            {isAdding ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            <span>{isAdding ? 'Close' : 'Add'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Top Segmented Switcher: Agenda vs Chat & Auto-Schedule */}
+      <div className="flex items-center p-1 bg-neutral-900/90 border border-neutral-800 rounded-xl shadow-sm">
         <button
-          onClick={() => setIsAdding(!isAdding)}
-          className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-sm ${
-            isAdding
-              ? 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700'
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+          onClick={() => setScheduleSubTab('agenda')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            scheduleSubTab === 'agenda'
+              ? 'bg-neutral-800 text-white shadow-sm border border-neutral-700/60'
+              : 'text-neutral-400 hover:text-neutral-200'
           }`}
         >
-          {isAdding ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-          <span>{isAdding ? 'Close' : 'Add'}</span>
+          <CalendarClock className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Agenda & List</span>
+          <span className="text-[10px] px-1.5 py-0.2 bg-neutral-950 text-neutral-300 rounded font-mono">
+            {schedulesSummary.total}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setScheduleSubTab('chat')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+            scheduleSubTab === 'chat'
+              ? 'bg-neutral-800 text-white shadow-sm border border-neutral-700/60'
+              : 'text-neutral-400 hover:text-neutral-200'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Chat & Auto-Schedule</span>
+          <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono flex items-center gap-1">
+            <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+            Auto
+          </span>
         </button>
       </div>
 
-      {/* 2. Metrics Bar (3 stats on mobile) */}
+      {scheduleSubTab === 'chat' ? (
+        <MessagesView embedded={true} />
+      ) : (
+        <>
+          {/* 2. Metrics Bar (3 stats on mobile) */}
       <div className="grid grid-cols-3 gap-2">
         <div className="p-3 bg-obsidian-900 border border-neutral-800/80 rounded-xl text-center">
           <span className="text-[10px] text-neutral-400 font-mono block">Upcoming</span>
@@ -165,7 +207,7 @@ export const ScheduleView: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setActiveTab('chat')}
+          onClick={() => setScheduleSubTab('chat')}
           className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold shrink-0 border border-neutral-700/80 flex items-center gap-1 active:scale-95 transition-all"
         >
           <span>Open Chat</span>
@@ -508,7 +550,7 @@ export const ScheduleView: React.FC = () => {
                         {item.sourceChatId && (
                           <button
                             type="button"
-                            onClick={() => setActiveTab('chat')}
+                            onClick={() => setScheduleSubTab('chat')}
                             className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                             title="View source chat"
                           >
@@ -582,6 +624,8 @@ export const ScheduleView: React.FC = () => {
           })
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };

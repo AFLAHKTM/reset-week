@@ -16,7 +16,7 @@ import {
   Check,
 } from 'lucide-react';
 
-export const MessagesView: React.FC = () => {
+export const MessagesView: React.FC<{ embedded?: boolean }> = ({ embedded = true }) => {
   const {
     contacts,
     activeContactId,
@@ -29,6 +29,7 @@ export const MessagesView: React.FC = () => {
     clearLastAutoScheduledItem,
     setSelectedDate,
     setActiveTab,
+    setScheduleSubTab,
   } = useResetWeek();
 
   const [inputText, setInputText] = useState('');
@@ -60,7 +61,8 @@ export const MessagesView: React.FC = () => {
   };
 
   const handleJumpToSchedule = (dateStr: string) => {
-    setSelectedDate(dateStr);
+    if (dateStr) setSelectedDate(dateStr);
+    setScheduleSubTab('agenda');
     setActiveTab('schedule');
   };
 
@@ -87,31 +89,55 @@ export const MessagesView: React.FC = () => {
   return (
     <div className="space-y-4 pb-20 animate-in fade-in duration-200">
       {/* 1. Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      {embedded ? (
+        <div className="flex items-center justify-between pt-0.5">
           <div className="flex items-center space-x-1.5">
             <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-emerald-400" />
-              Smart Auto-Scheduler
+              Auto-Schedule Chat
+            </span>
+            <span className="text-neutral-600 hidden sm:inline">•</span>
+            <span className="text-[11px] text-neutral-400 hidden sm:inline">
+              Chats automatically add meetings to agenda
             </span>
           </div>
-          <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight mt-0.5">
-            MESSAGES & CHAT
-          </h2>
-          <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5">
-            Conversations automatically detect & add meetings to your schedule
-          </p>
-        </div>
 
-        <button
-          onClick={() => setShowAddContact(!showAddContact)}
-          className="px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700/80 active:scale-95 transition-all shadow-sm"
-          title="Add New Contact"
-        >
-          <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="hidden sm:inline">New Contact</span>
-        </button>
-      </div>
+          <button
+            onClick={() => setShowAddContact(!showAddContact)}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700/80 active:scale-95 transition-all shadow-sm"
+            title="Add New Contact"
+          >
+            <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+            <span>New Contact</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center space-x-1.5">
+              <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-400" />
+                Smart Auto-Scheduler
+              </span>
+            </div>
+            <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight mt-0.5">
+              MESSAGES & CHAT
+            </h2>
+            <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5">
+              Conversations automatically detect & add meetings to your schedule
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowAddContact(!showAddContact)}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700/80 active:scale-95 transition-all shadow-sm"
+            title="Add New Contact"
+          >
+            <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">New Contact</span>
+          </button>
+        </div>
+      )}
 
       {/* 2. Auto-Scheduled Celebration Banner (Toast) */}
       {lastAutoScheduledItem && (
