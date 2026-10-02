@@ -7,6 +7,7 @@ import { ArchivedWeekModal } from './components/ArchivedWeekModal';
 import { HomeView } from './views/HomeView';
 import { WeekView } from './views/WeekView';
 import { ScheduleView } from './views/ScheduleView';
+import { MessagesView } from './views/MessagesView';
 import { LearnView } from './views/LearnView';
 import { FinanceView } from './views/FinanceView';
 import { ReviewView } from './views/ReviewView';
@@ -24,6 +25,7 @@ const AppContent: React.FC = () => {
         {activeTab === 'home' && <HomeView />}
         {activeTab === 'week' && <WeekView />}
         {activeTab === 'schedule' && <ScheduleView />}
+        {activeTab === 'chat' && <MessagesView />}
         {activeTab === 'learn' && <LearnView />}
         {activeTab === 'finance' && <FinanceView />}
         {activeTab === 'review' && <ReviewView />}

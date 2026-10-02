@@ -1,4 +1,4 @@
-import type { ResetWeekCycle, DayData, WeeklyOutcomes, MindReset } from '../types';
+import type { ResetWeekCycle, DayData, WeeklyOutcomes, MindReset, ChatContact, ChatMessage } from '../types';
 import { getPreviousOrCurrentFriday, generateCycleDays, formatISODate } from './dateUtils';
 
 export function createDefaultDayData(date: string, dayName: string, dayIndex: number): DayData {
@@ -214,6 +214,8 @@ export function createNewResetWeek(weekNumber: number, startDateInput?: Date): R
 export function getInitialSeedData(): {
   currentWeek: ResetWeekCycle;
   history: ResetWeekCycle[];
+  contacts: ChatContact[];
+  chatThreads: Record<string, ChatMessage[]>;
 } {
   const currentWeek = createNewResetWeek(3);
 
@@ -509,5 +511,184 @@ export function getInitialSeedData(): {
     },
   ];
 
-  return { currentWeek, history };
+  const contacts = createInitialContacts();
+  const chatThreads = createInitialChatThreads(Object.keys(currentWeek.days));
+
+  return { currentWeek, history, contacts, chatThreads };
+}
+
+export function createInitialContacts(): ChatContact[] {
+  return [
+    {
+      id: 'contact-zack',
+      name: 'Zack',
+      role: 'El Grafico Partner',
+      avatarColor: 'bg-emerald-600',
+      lastSeen: 'Active now',
+      unreadCount: 0,
+    },
+    {
+      id: 'contact-hamdan',
+      name: 'Hamdan',
+      role: 'Personal Brand & Media',
+      avatarColor: 'bg-indigo-600',
+      lastSeen: '10m ago',
+      unreadCount: 0,
+    },
+    {
+      id: 'contact-dr-rashid',
+      name: 'Dr. Rashid',
+      role: 'Mentor & Advisory',
+      avatarColor: 'bg-amber-600',
+      lastSeen: '1h ago',
+      unreadCount: 0,
+    },
+    {
+      id: 'contact-assistant',
+      name: 'AI Scheduling Assistant',
+      role: 'Smart Auto-Scheduler',
+      avatarColor: 'bg-purple-600',
+      isAssistant: true,
+      lastSeen: 'Online',
+      unreadCount: 0,
+    },
+    {
+      id: 'contact-family',
+      name: 'Family & Home',
+      role: 'Home Visits & Programs',
+      avatarColor: 'bg-rose-600',
+      lastSeen: 'Yesterday',
+      unreadCount: 0,
+    },
+  ];
+}
+
+export function createInitialChatThreads(weekDates: string[] = []): Record<string, ChatMessage[]> {
+  const d2 = weekDates[1] || '2026-10-03';
+  const d3 = weekDates[2] || '2026-10-04';
+
+  return {
+    'contact-zack': [
+      {
+        id: 'msg-z1',
+        contactId: 'contact-zack',
+        sender: 'contact',
+        text: 'Assalamu alaikum Aflah! Have you reviewed the client branding package for El Grafico?',
+        timestamp: '09:15 AM',
+      },
+      {
+        id: 'msg-z2',
+        contactId: 'contact-zack',
+        sender: 'user',
+        text: 'Wa alaikum assalam Zack! Yes, the typography and identity direction look solid.',
+        timestamp: '09:20 AM',
+      },
+      {
+        id: 'msg-z3',
+        contactId: 'contact-zack',
+        sender: 'contact',
+        text: 'Can we do a call on Saturday at 11:30 AM to finalize the logo concepts on Google Meet?',
+        timestamp: '09:22 AM',
+        autoScheduleId: 'sch-1',
+        scheduleDetails: {
+          title: 'El Grafico Logo Review with Zack',
+          date: d2,
+          time: '11:30 AM',
+          duration: '45 min',
+          location: 'Google Meet',
+          type: 'meeting',
+        },
+      },
+      {
+        id: 'msg-z4',
+        contactId: 'contact-zack',
+        sender: 'user',
+        text: "Perfect, let's meet Saturday 11:30 AM on Google Meet. Added to schedule!",
+        timestamp: '09:25 AM',
+      },
+    ],
+    'contact-hamdan': [
+      {
+        id: 'msg-h1',
+        contactId: 'contact-hamdan',
+        sender: 'contact',
+        text: 'Hey brother, the outline for the AI workflow video is prepared.',
+        timestamp: 'Yesterday',
+      },
+      {
+        id: 'msg-h2',
+        contactId: 'contact-hamdan',
+        sender: 'user',
+        text: "Great! Let's schedule a 30 min sync on Saturday at 3:00 PM at Office to record.",
+        timestamp: 'Yesterday',
+        autoScheduleId: 'sch-2',
+        scheduleDetails: {
+          title: 'Brand Video Recording with Hamdan',
+          date: d2,
+          time: '03:00 PM',
+          duration: '30 min',
+          location: 'Office',
+          type: 'meeting',
+        },
+      },
+    ],
+    'contact-dr-rashid': [
+      {
+        id: 'msg-r1',
+        contactId: 'contact-dr-rashid',
+        sender: 'contact',
+        text: 'Hope the reset week is going strong. When are you free for our weekly advisory catch-up?',
+        timestamp: 'Thursday',
+      },
+      {
+        id: 'msg-r2',
+        contactId: 'contact-dr-rashid',
+        sender: 'user',
+        text: "Alhamdulillah doing well Dr. Rashid! Let's meet Sunday at 5:00 PM for 45 min.",
+        timestamp: 'Thursday',
+        autoScheduleId: 'sch-rashid-1',
+        scheduleDetails: {
+          title: 'Weekly Advisory Catch-up with Dr. Rashid',
+          date: d3,
+          time: '05:00 PM',
+          duration: '45 min',
+          type: 'meeting',
+        },
+      },
+    ],
+    'contact-assistant': [
+      {
+        id: 'msg-a1',
+        contactId: 'contact-assistant',
+        sender: 'assistant',
+        text: "Salam! I am your AI Scheduling Assistant.\n\nType any plan, meeting, or appointment in natural language (for example: \"Schedule client call tomorrow at 10 AM on Zoom\" or \"Home visit Sunday at 7 PM\") and I will automatically schedule it for you!",
+        timestamp: 'Just now',
+      },
+    ],
+    'contact-family': [
+      {
+        id: 'msg-f1',
+        contactId: 'contact-family',
+        sender: 'contact',
+        text: 'Are you visiting home this weekend?',
+        timestamp: 'Wednesday',
+      },
+      {
+        id: 'msg-f2',
+        contactId: 'contact-family',
+        sender: 'user',
+        text: "Insha'Allah! Let's schedule a home visit on Sunday at 7:00 PM.",
+        timestamp: 'Wednesday',
+        autoScheduleId: 'sch-fam-1',
+        scheduleDetails: {
+          title: 'Home Visit (Family)',
+          date: d3,
+          time: '07:00 PM',
+          duration: '1 hour',
+          location: 'Home',
+          type: 'visit',
+        },
+      },
+    ],
+  };
 }

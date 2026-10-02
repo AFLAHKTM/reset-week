@@ -95,6 +95,46 @@ export interface ScheduleItem {
   notes?: string;
   completed: boolean;
   completedAt?: string;
+  sourceChatId?: string;
+  sourceMessageId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  contactId: string;
+  sender: 'user' | 'contact' | 'assistant';
+  text: string;
+  timestamp: string; // e.g. "10:15 AM"
+  autoScheduleId?: string;
+  scheduleDetails?: {
+    title: string;
+    date: string;
+    time: string;
+    duration?: string;
+    location?: string;
+    type: ScheduleItemType;
+  };
+}
+
+export interface ChatContact {
+  id: string;
+  name: string;
+  role: string;
+  avatarColor?: string;
+  isAssistant?: boolean;
+  lastSeen?: string;
+  unreadCount?: number;
+}
+
+export interface DetectedSchedule {
+  title: string;
+  person?: string;
+  type: ScheduleItemType;
+  date: string;
+  time: string;
+  duration?: string;
+  location?: string;
+  notes?: string;
 }
 
 export interface DayData {
@@ -203,4 +243,4 @@ export interface ResetWeekCycle {
   archivedAt?: string;
 }
 
-export type TabType = 'home' | 'week' | 'schedule' | 'learn' | 'finance' | 'review';
+export type TabType = 'home' | 'week' | 'schedule' | 'chat' | 'learn' | 'finance' | 'review';

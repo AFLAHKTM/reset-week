@@ -10,6 +10,8 @@ import {
   MapPin,
   User,
   CalendarClock,
+  MessageSquare,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
@@ -19,6 +21,7 @@ export const ScheduleView: React.FC = () => {
     currentWeek,
     selectedDate,
     setSelectedDate,
+    setActiveTab,
     todayDate,
     dayKeys,
     todaySchedules,
@@ -142,6 +145,32 @@ export const ScheduleView: React.FC = () => {
             {schedulesSummary.total}
           </span>
         </div>
+      </div>
+
+      {/* Smart Messaging Auto-Schedule Banner */}
+      <div className="p-3 bg-gradient-to-r from-emerald-950/40 via-obsidian-900 to-indigo-950/30 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 shrink-0">
+            <MessageSquare className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-white truncate">Auto-Schedule from Chats</span>
+              <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono shrink-0">Active</span>
+            </div>
+            <p className="text-[11px] text-neutral-400 mt-0.5 truncate">
+              Chat with contacts or AI assistant — commitments are automatically added here.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('chat')}
+          className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-xs font-semibold shrink-0 border border-neutral-700/80 flex items-center gap-1 active:scale-95 transition-all"
+        >
+          <span>Open Chat</span>
+          <Sparkles className="w-3 h-3 text-emerald-400" />
+        </button>
       </div>
 
       {/* 3. Horizontal 7-Day Quick Strip */}
@@ -475,6 +504,18 @@ export const ScheduleView: React.FC = () => {
                         >
                           {badge.icon} {badge.label}
                         </span>
+
+                        {item.sourceChatId && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('chat')}
+                            className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                            title="View source chat"
+                          >
+                            <MessageSquare className="w-2.5 h-2.5" />
+                            <span>From Chat</span>
+                          </button>
+                        )}
 
                         {viewMode === 'week' && (
                           <span className="text-[10px] font-mono text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded">
