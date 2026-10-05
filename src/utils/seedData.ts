@@ -90,6 +90,10 @@ export function createDefaultDayData(date: string, dayName: string, dayIndex: nu
     transactions: [],
     schedules: [],
     dailyReflection: '',
+    dailyOutcomes: {
+      officeAndElGrafico: {},
+      aurad: {},
+    },
   };
 }
 
@@ -336,6 +340,17 @@ export function getInitialSeedData(): {
           completedAt: '08:50 PM',
         },
       ];
+
+      d1.dailyOutcomes = {
+        officeAndElGrafico: {
+          'off-1': { completed: true, completedAt: '09:00 AM' },
+          'off-2': { completed: true, completedAt: '10:30 AM' },
+        },
+        aurad: {
+          'aur-1': { completed: true, completedAt: '06:30 AM' },
+          'aur-6': { completed: true, completedAt: '01:30 PM' },
+        },
+      };
     }
 
     if (currentWeek.days[day2Key]) {
@@ -379,6 +394,15 @@ export function getInitialSeedData(): {
           completedAt: '04:40 PM',
         },
       ];
+
+      d2.dailyOutcomes = {
+        officeAndElGrafico: {
+          'off-3': { completed: true, completedAt: '11:00 AM' },
+        },
+        aurad: {
+          'aur-2': { completed: true, completedAt: '07:00 AM' },
+        },
+      };
     }
 
     // Today's entry

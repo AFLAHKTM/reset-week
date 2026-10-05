@@ -122,7 +122,9 @@ interface ResetWeekContextType {
   toggleHabit: (habitKey: HabitKey, notes?: string) => void;
   updateHabitNotes: (habitKey: HabitKey, notes: string) => void;
   updateRoutineStatus: (routineId: 'tahajjud' | 'wakeUp' | 'sleep', status: RoutineStatus) => void;
-  toggleOutcomeTask: (category: keyof WeeklyOutcomes, taskId: string) => void;
+  toggleOutcomeTask: (category: keyof WeeklyOutcomes, taskId: string, date?: string) => void;
+  resetDailyOutcomes: (category?: 'officeAndElGrafico' | 'aurad' | 'all', date?: string) => void;
+  getOutcomeTaskStatus: (category: keyof WeeklyOutcomes, taskId: string, date?: string) => { completed: boolean; completedAt?: string };
   addOutcomeTask: (category: keyof WeeklyOutcomes, text: string) => void;
   toggleMindResetItem: (taskId: string) => void;
   updateMindResetField: (field: 'leavingBehind' | 'wantToRestart' | 'stopDoing' | 'mattersMostNow', value: string) => void;
@@ -187,6 +189,9 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     sch.title = extractMainHeading(sch.title, sch.type);
                   }
                 });
+              }
+              if (!day.dailyOutcomes) {
+                day.dailyOutcomes = { officeAndElGrafico: {}, aurad: {} };
               }
             });
           }
@@ -333,7 +338,7 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 85;
   }, [currentWeek.days]);
 
-  // Weekly Outcomes Progress
+  // Outcomes Progress (incorporating daily reset categories for selectedDate)
   const outcomesProgress = useMemo(() => {
     const calcCat = (tasks?: { completed: boolean }[]) => {
       if (!tasks || tasks.length === 0) return 0;
@@ -341,15 +346,24 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return Math.round((done / tasks.length) * 100);
     };
 
-    const office = calcCat(currentWeek.outcomes?.officeAndElGrafico?.tasks);
+    const calcDailyCat = (category: 'officeAndElGrafico' | 'aurad', targetDate: string) => {
+      const tasks = currentWeek.outcomes?.[category]?.tasks || [];
+      if (tasks.length === 0) return 0;
+      const day = currentWeek.days[targetDate];
+      const dailyMap = day?.dailyOutcomes?.[category] || {};
+      const doneCount = tasks.filter((t) => dailyMap[t.id]?.completed).length;
+      return Math.round((doneCount / tasks.length) * 100);
+    };
+
+    const office = calcDailyCat('officeAndElGrafico', selectedDate);
+    const aurad = calcDailyCat('aurad', selectedDate);
     const brand = calcCat(currentWeek.outcomes?.personalBrand?.tasks);
     const reset = calcCat(currentWeek.outcomes?.personalReset?.tasks);
     const general = calcCat(currentWeek.outcomes?.general?.tasks);
-    const aurad = calcCat(currentWeek.outcomes?.aurad?.tasks);
     const overall = Math.round((office + brand + reset + general + aurad) / 5);
 
     return { office, brand, reset, general, aurad, overall };
-  }, [currentWeek.outcomes]);
+  }, [currentWeek.outcomes, currentWeek.days, selectedDate]);
 
   // Smart NOW recommendation answering: "What should I do now?"
   const nowAction = useMemo(() => {
@@ -412,13 +426,30 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     // 2. If all 5 non-negotiables are complete, look for the next uncompleted outcome task
-    const nextOfficeTask = currentWeek.outcomes?.officeAndElGrafico?.tasks.find((t) => !t.completed);
+    const nextOfficeTask = currentWeek.outcomes?.officeAndElGrafico?.tasks.find((t) => {
+      const status = currentDayData?.dailyOutcomes?.officeAndElGrafico?.[t.id];
+      return !status?.completed;
+    });
     if (nextOfficeTask) {
       return {
         title: nextOfficeTask.text,
-        subtitle: '🏢 Office + El Grafico Prototype Milestone',
+        subtitle: '🏢 Office + El Grafico Prototype (Daily Routine)',
         type: 'outcome' as const,
-        actionLabel: 'View Weekly Outcomes',
+        actionLabel: 'View Daily Tasks',
+        targetTab: 'week' as TabType,
+      };
+    }
+
+    const nextAuradTask = currentWeek.outcomes?.aurad?.tasks.find((t) => {
+      const status = currentDayData?.dailyOutcomes?.aurad?.[t.id];
+      return !status?.completed;
+    });
+    if (nextAuradTask) {
+      return {
+        title: nextAuradTask.text,
+        subtitle: '📿 Aurad & Spiritual Recitations (Daily Routine)',
+        type: 'outcome' as const,
+        actionLabel: 'View Aurad & Tasks',
         targetTab: 'week' as TabType,
       };
     }
@@ -441,17 +472,6 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         subtitle: '🧠 Personal Reset Milestone',
         type: 'outcome' as const,
         actionLabel: 'View Weekly Outcomes',
-        targetTab: 'week' as TabType,
-      };
-    }
-
-    const nextAuradTask = currentWeek.outcomes?.aurad?.tasks.find((t) => !t.completed);
-    if (nextAuradTask) {
-      return {
-        title: nextAuradTask.text,
-        subtitle: '📿 Aurad & Spiritual Recitation',
-        type: 'outcome' as const,
-        actionLabel: 'View Aurad & Tasks',
         targetTab: 'week' as TabType,
       };
     }
@@ -770,7 +790,78 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   };
 
-  const toggleOutcomeTask = (category: keyof WeeklyOutcomes, taskId: string) => {
+  const getOutcomeTaskStatus = (
+    category: keyof WeeklyOutcomes,
+    taskId: string,
+    date?: string
+  ): { completed: boolean; completedAt?: string } => {
+    if (category === 'officeAndElGrafico' || category === 'aurad') {
+      const targetDate = date || selectedDate;
+      const day = state.currentWeek.days[targetDate];
+      const dailyMap = day?.dailyOutcomes?.[category];
+      if (dailyMap && dailyMap[taskId]) {
+        return dailyMap[taskId];
+      }
+      return { completed: false };
+    }
+    const cat = state.currentWeek.outcomes?.[category];
+    const task = cat?.tasks.find((t) => t.id === taskId);
+    return { completed: !!task?.completed, completedAt: task?.completedAt };
+  };
+
+  const toggleOutcomeTask = (category: keyof WeeklyOutcomes, taskId: string, date?: string) => {
+    if (category === 'officeAndElGrafico' || category === 'aurad') {
+      const targetDate = date || selectedDate;
+      setState((prev) => {
+        const week = { ...prev.currentWeek };
+        const day = week.days[targetDate];
+        if (!day) return prev;
+
+        const currentDailyOutcomes = day.dailyOutcomes || { officeAndElGrafico: {}, aurad: {} };
+        const catMap = { ...(currentDailyOutcomes[category] || {}) };
+        const currentTaskStatus = catMap[taskId];
+        const willBeCompleted = !currentTaskStatus?.completed;
+
+        catMap[taskId] = {
+          completed: willBeCompleted,
+          completedAt: willBeCompleted ? formatTime12h() : undefined,
+        };
+
+        const updatedDailyOutcomes = {
+          ...currentDailyOutcomes,
+          [category]: catMap,
+        };
+
+        week.days = {
+          ...week.days,
+          [targetDate]: {
+            ...day,
+            dailyOutcomes: updatedDailyOutcomes,
+          },
+        };
+
+        // If all tasks for this daily routine are completed on this day, celebrate
+        const allTasks = week.outcomes[category]?.tasks || [];
+        const isAllDone = allTasks.length > 0 && allTasks.every((t) => catMap[t.id]?.completed);
+        if (isAllDone && willBeCompleted) {
+          try {
+            confetti({
+              particleCount: 40,
+              spread: 60,
+              origin: { y: 0.8 },
+              colors: category === 'aurad' ? ['#a855f7', '#6366f1', '#10b981'] : ['#10b981', '#14b8a6', '#6366f1'],
+            });
+          } catch {
+            // ignore
+          }
+        }
+
+        return { ...prev, currentWeek: week };
+      });
+      return;
+    }
+
+    // Weekly outcomes (personalBrand, personalReset, general)
     setState((prev) => {
       const week = { ...prev.currentWeek };
       const cat = week.outcomes[category];
@@ -793,6 +884,40 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         [category]: {
           ...cat,
           tasks,
+        },
+      };
+
+      return { ...prev, currentWeek: week };
+    });
+  };
+
+  const resetDailyOutcomes = (
+    category?: 'officeAndElGrafico' | 'aurad' | 'all',
+    date?: string
+  ) => {
+    const targetDate = date || selectedDate;
+    setState((prev) => {
+      const week = { ...prev.currentWeek };
+      const day = week.days[targetDate];
+      if (!day) return prev;
+
+      const dailyOutcomes = {
+        officeAndElGrafico: { ...(day.dailyOutcomes?.officeAndElGrafico || {}) },
+        aurad: { ...(day.dailyOutcomes?.aurad || {}) },
+      };
+
+      if (!category || category === 'all' || category === 'officeAndElGrafico') {
+        dailyOutcomes.officeAndElGrafico = {};
+      }
+      if (!category || category === 'all' || category === 'aurad') {
+        dailyOutcomes.aurad = {};
+      }
+
+      week.days = {
+        ...week.days,
+        [targetDate]: {
+          ...day,
+          dailyOutcomes,
         },
       };
 
@@ -1181,6 +1306,63 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const userMsgId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const timeNow = formatTime12h();
     const cleanText = text.trim();
+    const lower = cleanText.toLowerCase();
+
+    // Check for reset daily command
+    const isResetCommand =
+      lower.startsWith('reset') ||
+      lower.includes('reset daily') ||
+      (lower.includes('reset') && (lower.includes('aurad') || lower.includes('office') || lower.includes('el grafico') || lower.includes('spiritual') || lower.includes('prototype')));
+
+    if (isResetCommand) {
+      let resetCat: 'officeAndElGrafico' | 'aurad' | 'all' = 'all';
+      let catName = '🏢 Office + El Grafico Prototype & 📿 Aurad';
+
+      const hasAurad = lower.includes('aurad') || lower.includes('spiritual');
+      const hasOffice = lower.includes('office') || lower.includes('el grafico') || lower.includes('prototype');
+
+      if (hasAurad && !hasOffice) {
+        resetCat = 'aurad';
+        catName = '📿 Aurad & Spiritual Recitations';
+      } else if (hasOffice && !hasAurad) {
+        resetCat = 'officeAndElGrafico';
+        catName = '🏢 Office + El Grafico Prototype';
+      }
+
+      resetDailyOutcomes(resetCat, selectedDate);
+
+      const userMessage: ChatMessage = {
+        id: userMsgId,
+        sender: 'user',
+        text: cleanText,
+        timestamp: timeNow,
+      };
+
+      const replyId = `msg-reply-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const replyMessage: ChatMessage = {
+        id: replyId,
+        sender: 'assistant',
+        text: `🔄 Reset Daily complete for ${catName} on ${selectedDate}!\n\nAll tasks for this day have been refreshed so you can track your routine fresh today.`,
+        timestamp: formatTime12h(),
+      };
+
+      setState((prev) => ({
+        ...prev,
+        chatMessages: [...(prev.chatMessages || []), userMessage, replyMessage],
+      }));
+
+      try {
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.8 },
+          colors: ['#10b981', '#a855f7', '#6366f1'],
+        });
+      } catch {
+        // ignore
+      }
+      return;
+    }
 
     // Schedule EXACTLY as typed!
     const dayKeysList = Object.keys(state.currentWeek.days);
@@ -1477,6 +1659,8 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateHabitNotes,
         updateRoutineStatus,
         toggleOutcomeTask,
+        resetDailyOutcomes,
+        getOutcomeTaskStatus,
         addOutcomeTask,
         toggleMindResetItem,
         updateMindResetField,

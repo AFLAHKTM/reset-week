@@ -509,8 +509,11 @@ export const HomeView: React.FC = () => {
           {/* Office */}
           <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
-                🏢 Office + El Grafico Prototype
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors flex items-center gap-1.5">
+                <span>🏢 Office + El Grafico Prototype</span>
+                <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  Daily Reset
+                </span>
               </span>
               <span className="font-mono text-neutral-400">{outcomesProgress.office}%</span>
             </div>
@@ -573,8 +576,11 @@ export const HomeView: React.FC = () => {
           {/* Aurad */}
           <div onClick={() => setActiveTab('week')} className="cursor-pointer group">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors">
-                📿 Aurad (Haddad, Yaseen, Al-Fath)
+              <span className="text-neutral-300 font-medium truncate group-hover:text-white transition-colors flex items-center gap-1.5">
+                <span>📿 Aurad (Haddad, Yaseen, Al-Fath)</span>
+                <span className="px-1.5 py-0.2 text-[9px] font-mono rounded bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                  Daily Reset
+                </span>
               </span>
               <span className="font-mono text-neutral-400">{outcomesProgress.aurad}%</span>
             </div>

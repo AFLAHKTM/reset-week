@@ -160,6 +160,16 @@ export interface DayData {
   transactions: TransactionEntry[];
   schedules?: ScheduleItem[];
   dailyReflection?: string;
+  dailyOutcomes?: {
+    officeAndElGrafico?: Record<string, DailyOutcomeStatus>;
+    aurad?: Record<string, DailyOutcomeStatus>;
+    [key: string]: Record<string, DailyOutcomeStatus> | undefined;
+  };
+}
+
+export interface DailyOutcomeStatus {
+  completed: boolean;
+  completedAt?: string;
 }
 
 export interface OutcomeTask {

@@ -6,13 +6,19 @@ import {
   Circle,
   Plus,
   Clock,
+  RotateCcw,
 } from 'lucide-react';
 
 export const WeekView: React.FC = () => {
   const {
     currentWeek,
+    selectedDate,
+    setSelectedDate,
+    dayKeys,
     outcomesProgress,
     toggleOutcomeTask,
+    resetDailyOutcomes,
+    getOutcomeTaskStatus,
     addOutcomeTask,
     toggleMindResetItem,
     updateMindResetField,
@@ -27,14 +33,18 @@ export const WeekView: React.FC = () => {
     title: string;
     description: string;
     color: string;
+    badgeColor?: string;
     progress: number;
+    isDaily?: boolean;
   }[] = [
     {
       key: 'officeAndElGrafico',
       title: '🏢 OFFICE + EL GRAFICO PROTOTYPE',
       description: 'Physical workspace excellence & business prototype architecture',
       color: 'bg-emerald-500',
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
       progress: outcomesProgress.office,
+      isDaily: true,
     },
     {
       key: 'personalBrand',
@@ -42,6 +52,7 @@ export const WeekView: React.FC = () => {
       description: 'Overcome friction, establish positioning, publish authentic content',
       color: 'bg-indigo-500',
       progress: outcomesProgress.brand,
+      isDaily: false,
     },
     {
       key: 'personalReset',
@@ -49,6 +60,7 @@ export const WeekView: React.FC = () => {
       description: 'Discipline baseline, spiritual grounding & cognitive clarity',
       color: 'bg-amber-500',
       progress: outcomesProgress.reset,
+      isDaily: false,
     },
     {
       key: 'general',
@@ -56,13 +68,16 @@ export const WeekView: React.FC = () => {
       description: 'Personal errands, shopping, home visits, meeting key persons & programs',
       color: 'bg-sky-500',
       progress: outcomesProgress.general,
+      isDaily: false,
     },
     {
       key: 'aurad',
       title: '📿 AURAD & SPIRITUAL RECITATIONS',
       description: 'Litanies & Surahs: Ratib Al-Haddad, Surah Yaseen, Surat Al-Fath & daily adhkar',
       color: 'bg-purple-500',
+      badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
       progress: outcomesProgress.aurad,
+      isDaily: true,
     },
   ];
 
@@ -101,6 +116,48 @@ export const WeekView: React.FC = () => {
         </div>
       </div>
 
+      {/* Daily Routine Date Selector */}
+      <div className="bg-obsidian-900 border border-neutral-800/80 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-card">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
+            <RotateCcw className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+              <span>Active Routine Day:</span>
+              <span className="text-emerald-400 font-mono px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                {currentWeek.days[selectedDate]?.dayName || selectedDate} ({selectedDate.slice(5)})
+              </span>
+            </div>
+            <p className="text-[11px] text-neutral-400 mt-0.5">
+              Office & Aurad routines reset daily. Tap a day to switch:
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {dayKeys.map((dKey) => {
+            const day = currentWeek.days[dKey];
+            const isSelected = dKey === selectedDate;
+            const shortName = day?.dayName?.slice(0, 3) || dKey.slice(8);
+            return (
+              <button
+                key={dKey}
+                onClick={() => setSelectedDate(dKey)}
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-mono font-medium transition-all flex items-center gap-1 whitespace-nowrap active:scale-95 ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/50'
+                    : 'bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-700'
+                }`}
+              >
+                <span>{shortName}</span>
+                <span className="text-[9px] opacity-75">{dKey.slice(8)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Outcome Cards */}
       <div className="space-y-4 sm:space-y-6">
         {outcomesList.map((item) => {
@@ -110,7 +167,12 @@ export const WeekView: React.FC = () => {
             tasks: [],
           };
           const tasks = outcome.tasks || [];
-          const completedCount = tasks.filter((t) => t.completed).length;
+          const completedCount = tasks.filter((t) => {
+            if (item.isDaily) {
+              return getOutcomeTaskStatus(item.key, t.id, selectedDate).completed;
+            }
+            return t.completed;
+          }).length;
 
           return (
             <div
@@ -118,19 +180,38 @@ export const WeekView: React.FC = () => {
               className="bg-obsidian-900 border border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-elevated space-y-3.5"
             >
               {/* Outcome Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-neutral-800/80 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-800/80 pb-3">
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
-                    {outcome.title}
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                      {outcome.title}
+                    </h3>
+                    {item.isDaily && (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border flex items-center gap-1 ${item.badgeColor || 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'}`}>
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        RESETS DAILY
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5">
                     {outcome.description}
                   </p>
                 </div>
 
                 <div className="flex items-center space-x-2.5 flex-shrink-0">
+                  {item.isDaily && (
+                    <button
+                      type="button"
+                      onClick={() => resetDailyOutcomes(item.key as 'officeAndElGrafico' | 'aurad', selectedDate)}
+                      className="px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-mono font-medium bg-neutral-950 border border-neutral-700/80 hover:border-emerald-500/60 hover:text-emerald-400 text-neutral-300 transition-colors flex items-center gap-1 active:scale-95"
+                      title={`Reset all daily checks for ${currentWeek.days[selectedDate]?.dayName || selectedDate}`}
+                    >
+                      <RotateCcw className="w-3 h-3 text-neutral-400" />
+                      <span>Reset Daily</span>
+                    </button>
+                  )}
                   <span className="text-[11px] font-mono text-neutral-400">
-                    {completedCount} / {outcome.tasks.length} Done
+                    {completedCount} / {tasks.length} Done
                   </span>
                   <span className="text-xs sm:text-sm font-mono font-bold text-white">
                     {item.progress}%
@@ -148,49 +229,57 @@ export const WeekView: React.FC = () => {
 
               {/* Task Checklist */}
               <div className="space-y-1.5 pt-1">
-                {outcome.tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => toggleOutcomeTask(item.key, task.id)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer active:scale-[0.99] ${
-                      task.completed
-                        ? 'bg-neutral-950/40 border-neutral-800/40 text-neutral-400'
-                        : 'bg-obsidian-950/60 border-neutral-800/70 hover:border-neutral-700 text-neutral-200'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2.5 sm:space-x-3 flex-1 min-w-0">
-                      <button
-                        type="button"
-                        aria-label={`Toggle ${task.text}`}
-                        className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors ${
-                          task.completed
-                            ? 'bg-emerald-600 border border-emerald-500 text-white'
-                            : 'border-2 border-neutral-600 text-transparent'
-                        }`}
-                      >
-                        {task.completed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        ) : (
-                          <Circle className="w-3.5 h-3.5 text-transparent" />
-                        )}
-                      </button>
-                      <span
-                        className={`text-xs sm:text-sm font-medium ${
-                          task.completed ? 'line-through text-neutral-400' : 'text-neutral-100'
-                        }`}
-                      >
-                        {task.text}
-                      </span>
-                    </div>
+                {tasks.map((task) => {
+                  const status = item.isDaily
+                    ? getOutcomeTaskStatus(item.key, task.id, selectedDate)
+                    : { completed: task.completed, completedAt: task.completedAt };
+                  const isDone = status.completed;
+                  const doneAt = status.completedAt;
 
-                    {task.completedAt && (
-                      <span className="text-[10px] font-mono text-neutral-400 flex items-center gap-0.5 flex-shrink-0 ml-1.5">
-                        <Clock className="w-2.5 h-2.5 text-neutral-400" />
-                        {task.completedAt}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => toggleOutcomeTask(item.key, task.id, selectedDate)}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer active:scale-[0.99] ${
+                        isDone
+                          ? 'bg-neutral-950/40 border-neutral-800/40 text-neutral-400'
+                          : 'bg-obsidian-950/60 border-neutral-800/70 hover:border-neutral-700 text-neutral-200'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2.5 sm:space-x-3 flex-1 min-w-0">
+                        <button
+                          type="button"
+                          aria-label={`Toggle ${task.text}`}
+                          className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                            isDone
+                              ? 'bg-emerald-600 border border-emerald-500 text-white'
+                              : 'border-2 border-neutral-600 text-transparent'
+                          }`}
+                        >
+                          {isDone ? (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          ) : (
+                            <Circle className="w-3.5 h-3.5 text-transparent" />
+                          )}
+                        </button>
+                        <span
+                          className={`text-xs sm:text-sm font-medium ${
+                            isDone ? 'line-through text-neutral-400' : 'text-neutral-100'
+                          }`}
+                        >
+                          {task.text}
+                        </span>
+                      </div>
+
+                      {doneAt && (
+                        <span className="text-[10px] font-mono text-neutral-400 flex items-center gap-0.5 flex-shrink-0 ml-1.5">
+                          <Clock className="w-2.5 h-2.5 text-neutral-400" />
+                          {doneAt}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Add Custom Task */}
