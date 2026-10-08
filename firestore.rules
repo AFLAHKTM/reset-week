@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow personal sync document read and write
+    match /reset_week_sync/{syncKey} {
+      allow read, write: if true;
+    }
+  }
+}

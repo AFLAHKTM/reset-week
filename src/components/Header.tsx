@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useResetWeek } from '../context/ResetWeekContext';
-import { Sun, Moon, Calendar, Download, Upload, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Sun, Moon, Calendar, Download, Upload, RotateCcw, CheckCircle2, Cloud } from 'lucide-react';
 import { parseISODate } from '../utils/dateUtils';
+import { FirebaseSyncModal } from './FirebaseSyncModal';
 
 export const Header: React.FC = () => {
   const {
@@ -14,9 +15,11 @@ export const Header: React.FC = () => {
     exportJSON,
     importJSON,
     resetAllData,
+    syncStatus,
   } = useResetWeek();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const cycleDays = Object.values(currentWeek.days).sort((a, b) => a.dayIndex - b.dayIndex);
 
@@ -60,7 +63,41 @@ export const Header: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1.5">
+            {/* Cloud Sync Status Pill */}
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all active:scale-95 border ${
+                syncStatus === 'connected'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                  : syncStatus === 'syncing'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                  : syncStatus === 'offline'
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                  : 'bg-neutral-800/60 border-neutral-700/80 text-neutral-400 hover:text-white hover:border-neutral-600'
+              }`}
+              title="Firebase Cloud Sync - Realtime updates on all devices"
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-semibold">
+                {syncStatus === 'connected' && 'Cloud Sync'}
+                {syncStatus === 'syncing' && 'Syncing...'}
+                {syncStatus === 'offline' && 'Offline'}
+                {syncStatus === 'unconfigured' && 'Connect Cloud'}
+              </span>
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  syncStatus === 'connected'
+                    ? 'bg-emerald-400 animate-pulse'
+                    : syncStatus === 'syncing'
+                    ? 'bg-amber-400 animate-ping'
+                    : syncStatus === 'offline'
+                    ? 'bg-rose-400'
+                    : 'bg-neutral-500'
+                }`}
+              />
+            </button>
+
             <button
               onClick={toggleTheme}
               aria-label="Toggle Theme"
@@ -171,8 +208,33 @@ export const Header: React.FC = () => {
                 <span>Reset to Seed Data</span>
               </button>
             </div>
+
+            <div className="pt-2 border-t border-neutral-800/80">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSettings(false);
+                  setShowSyncModal(true);
+                }}
+                className="w-full flex items-center justify-between p-2.5 bg-amber-500/10 hover:bg-amber-500/15 text-amber-300 rounded-xl border border-amber-500/30 transition-all text-xs font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <Cloud className="w-4 h-4 text-amber-400" />
+                  <span>Firebase Realtime Cloud Sync</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                  {syncStatus === 'connected' ? '🟢 Live Connected' : 'Configure ⚙️'}
+                </span>
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Firebase Cloud Sync Modal */}
+        <FirebaseSyncModal
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+        />
       </div>
     </header>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import type {
   ResetWeekCycle,
   DayData,
@@ -21,6 +21,15 @@ import { formatISODate, formatTime12h } from '../utils/dateUtils';
 import { getInitialSeedData, createNewResetWeek, createInitialOutcomes, createInitialChatMessages, createInitialContacts, createInitialChatThreads } from '../utils/seedData';
 import { detectScheduleFromText, extractMainHeading } from '../utils/chatParser';
 import confetti from 'canvas-confetti';
+import {
+  getStoredFirebaseConfig,
+  saveFirebaseConfig,
+  clearFirebaseConfig,
+  subscribeToCloudResetWeek,
+  pushToCloudResetWeek,
+  fetchCloudResetWeek,
+  type FirebaseSyncConfig,
+} from '../lib/firebase';
 
 interface ResetWeekContextType {
   currentWeek: ResetWeekCycle;
@@ -141,6 +150,14 @@ interface ResetWeekContextType {
   exportJSON: () => void;
   importJSON: (data: string) => boolean;
   resetAllData: () => void;
+
+  // Firebase Realtime Cloud Sync
+  syncStatus: 'connected' | 'syncing' | 'offline' | 'unconfigured';
+  lastSyncedAt: string | null;
+  firebaseConfig: FirebaseSyncConfig | null;
+  connectFirebase: (config: FirebaseSyncConfig) => Promise<{ success: boolean; error?: string }>;
+  disconnectFirebase: () => void;
+  forceSyncNow: () => Promise<void>;
 }
 
 const STORAGE_KEY = 'RESET_WEEK_DATA_V1';
@@ -239,14 +256,140 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
-  // Save state on change
+  // Firebase Cloud Sync State
+  const [firebaseConfig, setFirebaseConfig] = useState<FirebaseSyncConfig | null>(() => getStoredFirebaseConfig());
+  const [syncStatus, setSyncStatus] = useState<'connected' | 'syncing' | 'offline' | 'unconfigured'>(() => {
+    return getStoredFirebaseConfig() ? 'connected' : 'unconfigured';
+  });
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  const isRemoteUpdatingRef = useRef(false);
+  const debounceTimerRef = useRef<any>(null);
+  const activeUnsubscribeRef = useRef<(() => void) | null>(null);
+
+  // Subscribe to Cloud Realtime Updates
+  useEffect(() => {
+    if (!firebaseConfig) {
+      setSyncStatus('unconfigured');
+      if (activeUnsubscribeRef.current) {
+        activeUnsubscribeRef.current();
+        activeUnsubscribeRef.current = null;
+      }
+      return;
+    }
+
+    setSyncStatus('connected');
+    const syncKey = firebaseConfig.syncKey || 'personal_reset_week';
+
+    const unsubscribe = subscribeToCloudResetWeek(
+      syncKey,
+      (remoteState) => {
+        if (!remoteState || !remoteState.currentWeek) return;
+        isRemoteUpdatingRef.current = true;
+        setState(remoteState);
+        setLastSyncedAt(formatTime12h());
+        setSyncStatus('connected');
+      },
+      (error) => {
+        console.warn('Realtime sync error:', error);
+        setSyncStatus('offline');
+      }
+    );
+
+    activeUnsubscribeRef.current = unsubscribe;
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [firebaseConfig]);
+
+  // Save state on change (Local Storage + Cloud Firestore)
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.error('Failed to save state to localStorage:', e);
     }
-  }, [state]);
+
+    // Skip push if this update was received from remote Firestore
+    if (isRemoteUpdatingRef.current) {
+      isRemoteUpdatingRef.current = false;
+      return;
+    }
+
+    // Push local change to Firebase Cloud if connected
+    if (firebaseConfig) {
+      setSyncStatus('syncing');
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(async () => {
+        const syncKey = firebaseConfig.syncKey || 'personal_reset_week';
+        const result = await pushToCloudResetWeek(state, syncKey);
+        if (result.success) {
+          setSyncStatus('connected');
+          setLastSyncedAt(formatTime12h());
+        } else {
+          setSyncStatus('offline');
+        }
+      }, 400);
+    }
+  }, [state, firebaseConfig]);
+
+  const connectFirebase = async (config: FirebaseSyncConfig): Promise<{ success: boolean; error?: string }> => {
+    saveFirebaseConfig(config);
+    setFirebaseConfig(config);
+    setSyncStatus('syncing');
+    const syncKey = config.syncKey || 'personal_reset_week';
+
+    // 1. Try pulling existing data from cloud first
+    const fetchRes = await fetchCloudResetWeek(syncKey);
+    if (!fetchRes.success) {
+      return { success: false, error: fetchRes.error };
+    }
+
+    if (fetchRes.data && fetchRes.data.currentWeek) {
+      isRemoteUpdatingRef.current = true;
+      setState(fetchRes.data);
+      setLastSyncedAt(formatTime12h());
+      setSyncStatus('connected');
+      return { success: true };
+    }
+
+    // 2. Otherwise seed cloud with current local state
+    const pushRes = await pushToCloudResetWeek(state, syncKey);
+    if (pushRes.success) {
+      setSyncStatus('connected');
+      setLastSyncedAt(formatTime12h());
+      return { success: true };
+    }
+
+    return { success: false, error: pushRes.error };
+  };
+
+  const disconnectFirebase = () => {
+    clearFirebaseConfig();
+    if (activeUnsubscribeRef.current) {
+      activeUnsubscribeRef.current();
+      activeUnsubscribeRef.current = null;
+    }
+    setFirebaseConfig(null);
+    setSyncStatus('unconfigured');
+  };
+
+  const forceSyncNow = async () => {
+    if (!firebaseConfig) return;
+    setSyncStatus('syncing');
+    const syncKey = firebaseConfig.syncKey || 'personal_reset_week';
+    const res = await pushToCloudResetWeek(state, syncKey);
+    if (res.success) {
+      setSyncStatus('connected');
+      setLastSyncedAt(formatTime12h());
+    } else {
+      setSyncStatus('offline');
+    }
+  };
 
   const setTheme = (t: 'dark' | 'light') => {
     setThemeState(t);
@@ -1677,6 +1820,14 @@ export const ResetWeekProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         exportJSON,
         importJSON,
         resetAllData,
+
+        // Firebase Cloud Sync
+        syncStatus,
+        lastSyncedAt,
+        firebaseConfig,
+        connectFirebase,
+        disconnectFirebase,
+        forceSyncNow,
       }}
     >
       {children}
